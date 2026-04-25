@@ -7,7 +7,7 @@ No PHP, no MySQL, no runtime dependencies beyond the single binary.
 bun install && bun dev
 ```
 
-Open **http://localhost:8080** — first visit redirects to setup.
+Open **http://localhost:8000** — first visit redirects to setup.
 
 ---
 
