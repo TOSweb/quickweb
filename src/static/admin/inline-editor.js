@@ -1,6 +1,6 @@
 // src/static/admin/inline-editor.js
 (function() {
-    console.log("🛠️ MyCMS Manual Edit Mode v2.1 Active");
+    console.log("🛠️ Veave CMS Manual Edit Mode v2.1 Active");
     
     let pendingChanges = {}; 
     let isDirty = false;
@@ -10,7 +10,7 @@
         const bar = document.createElement('div');
         bar.id = 'cms-editor-bar';
         bar.innerHTML = `
-            <div class="cms-bar-brand">MyCMS Edit Mode</div>
+            <div class="cms-bar-brand">Veave CMS Edit Mode</div>
             <div class="cms-bar-status" id="cms-save-status">All changes saved</div>
             <div class="cms-bar-actions">
                 <button class="cms-btn cms-btn-outline" onclick="window.location.reload()">Discard</button>

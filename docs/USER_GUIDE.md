@@ -1,4 +1,4 @@
-# MyCMS — User Guide
+# Veave CMS — User Guide
 
 > **Who this is for:** site owners, content editors, and administrators who use the CMS day-to-day. No coding knowledge required for anything in this guide.
 
@@ -35,10 +35,10 @@ Open **http://localhost:8080**.
 ### Option B — Run the binary (production)
 
 ```bash
-scp mycms user@yourserver:/srv/cms/
+scp veavecms user@yourserver:/srv/cms/
 ssh user@yourserver
 cd /srv/cms
-NODE_ENV=production ./mycms
+NODE_ENV=production ./veavecms
 ```
 
 Open **http://your-domain.com**.
@@ -211,7 +211,7 @@ Click **Discard** to reload the page and undo all unsaved changes.
 
 ### Changing a slug after publishing
 
-You can change the slug on an already-published post. MyCMS automatically creates a **301 redirect** from the old URL to the new one so bookmarks and search engine links don't break.
+You can change the slug on an already-published post. Veave CMS automatically creates a **301 redirect** from the old URL to the new one so bookmarks and search engine links don't break.
 
 ### Categories
 
@@ -238,7 +238,7 @@ Tags are created on the fly when you type them into the post editor's **Tags** f
 
 **Supported file types:** JPEG, PNG, WebP, GIF, SVG, PDF (up to 10 MB each by default).
 
-> MyCMS validates files by their actual content (magic bytes), not just the file extension. Renaming a PHP file to `.jpg` will be rejected.
+> Veave CMS validates files by their actual content (magic bytes), not just the file extension. Renaming a PHP file to `.jpg` will be rejected.
 
 ### Using uploaded files
 

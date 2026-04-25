@@ -1,0 +1,7 @@
+{
+  "displayName": "Services",
+  "name": "services-plugin",
+  "version": "1.0.0",
+  "description": "Adds a Services content type to the admin panel",
+  "author": "Your Name"
+}

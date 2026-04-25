@@ -1,15 +1,18 @@
 {
-  "name": "mycms",
+  "name": "veavecms",
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/index.js",
     "start": "NODE_ENV=production bun src/index.js",
-    "build": "bun build --compile src/index.js --outfile mycms",
+    "build": "bun build --compile src/index.js --outfile veavecms",
     "package": "bun run scripts/build-release.js"
   },
   "dependencies": {
+    "adm-zip": "^0.5.17",
+    "better-sqlite3": "^9.4.3",
+    "mysql2": "^3.22.2",
     "nunjucks": "^3.2.4",
-    "better-sqlite3": "^9.4.3"
+    "tinymce": "^6.8.2"
   }
 }

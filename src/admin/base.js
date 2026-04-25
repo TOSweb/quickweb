@@ -1,5 +1,7 @@
 // src/admin/base.js
 import { generateCsrfToken } from "../core/csrf.js";
+import { getContentTypes } from "../core/plugins.js";
+import { getSetting } from "../db.js";
 import config from "../config.js";
 
 export function adminHTML(title, content, session, { debugData = null } = {}) {
@@ -11,7 +13,8 @@ export function adminHTML(title, content, session, { debugData = null } = {}) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} — MyCMS Admin</title>
+    <title>${title} — Veave CMS Admin</title>
+    ${getSetting('favicon') ? `<link rel="icon" href="${getSetting('favicon')}">` : ''}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -72,6 +75,11 @@ export function adminHTML(title, content, session, { debugData = null } = {}) {
             border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
             color: white; font-size: 16px;
+        }
+        .sidebar-brand img {
+            max-width: 100%;
+            height: 36px;
+            object-fit: contain;
         }
         
         .nav-label { 
@@ -167,8 +175,10 @@ export function adminHTML(title, content, session, { debugData = null } = {}) {
 <body>
     <div class="sidebar">
         <div class="sidebar-brand">
-            <div class="sidebar-brand-icon">M</div>
-            MyCMS
+            ${getSetting('site_logo') 
+                ? `<img src="${getSetting('site_logo')}" alt="Veave CMS">`
+                : `<div class="sidebar-brand-icon">V</div> Veave CMS`
+            }
         </div>
         <div class="nav">
             ${(() => {
@@ -179,12 +189,24 @@ export function adminHTML(title, content, session, { debugData = null } = {}) {
             <a href="/admin/components" class="${title === 'Components' || title === 'New Component' ? 'active' : ''}">${icon('<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>')} Components</a>
             <a href="/admin/blog" class="${['Blog','New Post','Edit Post','Categories','New Category','Edit Category'].includes(title) ? 'active' : ''}">${icon('<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>')} Blog</a>
 
+            ${(() => {
+              const types = getContentTypes();
+              if (!types.length) return "";
+              return `<div class="nav-label">Content</div>` +
+                types.map(t => {
+                  const active = title === t.label || title === `New ${t.singular || t.label.replace(/s$/, "")}` || title === `Edit ${t.singular || t.label.replace(/s$/, "")}`;
+                  const iconSvg = t.navIcon || '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>';
+                  return `<a href="/admin/${t.slug}" class="${active ? 'active' : ''}">${icon(iconSvg)} ${t.label}</a>`;
+                }).join("");
+            })()}
+
             <div class="nav-label">System</div>
             <a href="/admin/media" class="${title === 'Media' ? 'active' : ''}">${icon('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>')} Media</a>
             <a href="/admin/redirects" class="${title === 'Redirects' ? 'active' : ''}">${icon('<path d="M20 8h-9a4 4 0 0 0-4 4v8"/><polyline points="16 4 20 8 16 12"/>')} Redirects</a>
             <a href="/admin/users" class="${['Users','New User','Edit User'].includes(title) ? 'active' : ''}">${icon('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>')} Users</a>
             <a href="/admin/groups" class="${['Groups','New Group','Edit Group'].includes(title) ? 'active' : ''}">${icon('<path d="M17 21v-2a4 4 0 0 0-3-3.87"/><path d="M9 21v-2a4 4 0 0 1 3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><circle cx="9" cy="7" r="4"/>')} Groups</a>
             <a href="/admin/settings" class="${title === 'Settings' ? 'active' : ''}">${icon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>')} Settings</a>
+            <a href="/admin/plugins" class="${title === 'Plugins' ? 'active' : ''}">${icon('<path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/>')} Plugins</a>
             <a href="/admin/developer/components" class="${title === 'Component Developer' ? 'active' : ''}">${icon('<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>')} Developer</a>
             <a href="/admin/logout" style="color:#ef4444; margin-top:20px">${icon('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>')} Logout</a>
             `;})()}
@@ -220,6 +242,24 @@ export function adminHTML(title, content, session, { debugData = null } = {}) {
         </div>` : ''}
     </div>
     <script>window.CSRF_TOKEN = "${csrfToken}";</script>
+    <script src="/admin/static/tinymce/tinymce.min.js"></script>
+    <script>
+      if (typeof tinymce !== 'undefined') {
+        tinymce.init({
+          selector: 'textarea.richtext',
+          plugins: 'preview searchreplace autolink directionality code visualblocks visualchars fullscreen image link media codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap emoticons',
+          menubar: 'file edit view insert format tools table help',
+          toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | outdent indent | numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons | fullscreen preview | image media link anchor codesample',
+          toolbar_sticky: true,
+          image_advtab: true,
+          height: 500,
+          skin: 'oxide',
+          branding: false,
+          promotion: false,
+          content_style: 'body { font-family: "Outfit", sans-serif; font-size: 16px; }'
+        });
+      }
+    </script>
 </body>
 </html>`;
 }

@@ -18,7 +18,10 @@ export function buildMeta({ page, post, siteUrl } = {}) {
   const ogImage = obj.og_image || obj.featured_image || "";
   const ogImageAlt = obj.featured_image_alt || title;
 
+  const favicon = getSetting("favicon");
+
   const parts = [
+    favicon ? `<link rel="icon" href="${esc(favicon)}">` : "",
     `<title>${esc(title)}${siteTitle ? ` — ${esc(siteTitle)}` : ""}</title>`,
     description ? `<meta name="description" content="${esc(description)}">` : "",
     `<link rel="canonical" href="${esc(canonical)}">`,

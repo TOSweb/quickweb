@@ -1,6 +1,6 @@
-# MyCMS — Theme Guide
+# Veave CMS — Theme Guide
 
-> **Who this is for:** frontend developers who want to customise the look of a MyCMS site or build a theme from scratch.
+> **Who this is for:** frontend developers who want to customise the look of a Veave CMS site or build a theme from scratch.
 
 ---
 

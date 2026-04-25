@@ -8,6 +8,7 @@ import {
 import {
   componentsList, newComponentPage, handleNewComponent, handleToggleGlobal, handleDeleteComponent, handleUpdateContent
 } from "./components.js";
+import { importComponentPage, handleImportComponent } from "./importer.js";
 import {
   componentTemplatesList, editComponentTemplate, handleSaveTemplate, handleCreateTemplate
 } from "./developer.js";
@@ -21,8 +22,22 @@ import {
 } from "./blog.js";
 import { redirectsList, handleNewRedirect, handleDeleteRedirect } from "./redirects.js";
 import { mediaLibrary, handleUpload, handleDeleteMedia } from "./media.js";
+import { pluginsList, handlePluginUpload, handleDeletePlugin } from "./plugins.js";
+import { makeContentTypeHandlers } from "./content-type.js";
+import { getContentTypes } from "../core/plugins.js";
 import { requireAuth } from "../core/auth.js";
 import { adminHTML } from "./base.js";
+
+// Lazily built on first request after loadPlugins() has run
+let _ctHandlers = null;
+function getCtHandlers() {
+  if (_ctHandlers) return _ctHandlers;
+  _ctHandlers = new Map();
+  for (const typeDef of getContentTypes()) {
+    _ctHandlers.set(typeDef.slug, makeContentTypeHandlers(typeDef));
+  }
+  return _ctHandlers;
+}
 
 export async function adminRouter(req, path) {
   const method = req.method;
@@ -56,6 +71,10 @@ export async function adminRouter(req, path) {
   if (removeCompMatch && method === "POST") return handleRemoveComponent(req, { id: removeCompMatch[1] });
 
   // Components
+  if (path === "/admin/components/import") {
+    if (method === "GET") return importComponentPage(req, {});
+    if (method === "POST") return handleImportComponent(req, {});
+  }
   if (path === "/admin/components") return componentsList(req, {});
   if (path === "/admin/components/new") {
     if (method === "GET") return newComponentPage(req, {});
@@ -148,6 +167,29 @@ export async function adminRouter(req, path) {
   if (path === "/admin/media/upload" && method === "POST") return handleUpload(req, {});
   const deleteMediaMatch = path.match(/^\/admin\/media\/(\d+)\/delete$/);
   if (deleteMediaMatch && method === "POST") return handleDeleteMedia(req, { id: deleteMediaMatch[1] });
+
+  // Plugins
+  if (path === "/admin/plugins") return pluginsList(req, {});
+  if (path === "/admin/plugins/upload" && method === "POST") return handlePluginUpload(req, {});
+  const deletePluginMatch = path.match(/^\/admin\/plugins\/([^/]+)\/delete$/);
+  if (deletePluginMatch && method === "POST") return handleDeletePlugin(req, { folder: deletePluginMatch[1] });
+
+  // Dynamic content types (registered by plugins via addContentType)
+  const ctHandlers = getCtHandlers();
+  for (const [slug, h] of ctHandlers) {
+    if (path === `/admin/${slug}`) return h.list(req, {});
+    if (path === `/admin/${slug}/new`) {
+      if (method === "GET") return h.newItem(req, {});
+      if (method === "POST") return h.handleNew(req, {});
+    }
+    const editMatch = path.match(new RegExp(`^/admin/${slug}/(\\d+)/edit$`));
+    if (editMatch) {
+      if (method === "GET") return h.editItem(req, { id: editMatch[1] });
+      if (method === "POST") return h.handleEdit(req, { id: editMatch[1] });
+    }
+    const deleteMatch = path.match(new RegExp(`^/admin/${slug}/(\\d+)/delete$`));
+    if (deleteMatch && method === "POST") return h.handleDelete(req, { id: deleteMatch[1] });
+  }
 
   return new Response("Admin route not found", { status: 404 });
 }

@@ -10,7 +10,7 @@ export function invalidateSitemap() {
   cacheTime = 0;
 }
 
-export function serveSitemap() {
+export async function serveSitemap() {
   const ttl = (config.cache?.sitemapTtlSeconds ?? 3600) * 1000;
   if (cachedSitemap && Date.now() - cacheTime < ttl) {
     return new Response(cachedSitemap, {
@@ -18,7 +18,7 @@ export function serveSitemap() {
     });
   }
 
-  const xml = generateSitemapXml();
+  const xml = await generateSitemapXml();
   cachedSitemap = xml;
   cacheTime = Date.now();
 
@@ -33,43 +33,31 @@ export function serveRobots() {
   return new Response(txt, { headers: { "Content-Type": "text/plain" } });
 }
 
-function generateSitemapXml() {
+async function generateSitemapXml() {
   const db = getDB();
   const siteUrl = getSetting("site_url") || config.siteUrl || "";
   const includePages = getSetting("sitemap_include_pages") !== "0";
   const includePosts = getSetting("sitemap_include_posts") !== "0";
 
   const urls = [];
-
-  // Homepage
   urls.push({ loc: siteUrl + "/", priority: "1.0", changefreq: "weekly" });
 
   if (includePages) {
-    const pages = db.prepare(
+    const pages = await db.all(
       "SELECT slug, updated_at FROM pages WHERE status='published' ORDER BY updated_at DESC"
-    ).all();
+    );
     for (const p of pages) {
       if (!p.slug) continue;
-      urls.push({
-        loc: `${siteUrl}/${p.slug}`,
-        lastmod: isoDate(p.updated_at),
-        priority: "0.8",
-        changefreq: "monthly",
-      });
+      urls.push({ loc: `${siteUrl}/${p.slug}`, lastmod: isoDate(p.updated_at), priority: "0.8", changefreq: "monthly" });
     }
   }
 
   if (includePosts) {
-    const posts = db.prepare(
+    const posts = await db.all(
       "SELECT slug, updated_at FROM blog_posts WHERE status='published' ORDER BY updated_at DESC"
-    ).all();
+    );
     for (const p of posts) {
-      urls.push({
-        loc: `${siteUrl}/blog/${p.slug}`,
-        lastmod: isoDate(p.updated_at),
-        priority: "0.6",
-        changefreq: "never",
-      });
+      urls.push({ loc: `${siteUrl}/blog/${p.slug}`, lastmod: isoDate(p.updated_at), priority: "0.6", changefreq: "never" });
     }
   }
 

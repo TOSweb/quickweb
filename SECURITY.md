@@ -1,4 +1,4 @@
-# MyCMS — Security Implementation Guide
+# Veave CMS — Security Implementation Guide
 > This document is mandatory reading before working on any security-related code.
 
 ---

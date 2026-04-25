@@ -12,25 +12,28 @@ export const handleUpdateContent = requireAuth(csrfProtect(async (req, params, s
   const { field, value } = body;
 
   if (!field) return new Response("Missing field", { status: 400 });
-  
+
   try {
-    const comp = db.prepare("SELECT * FROM components WHERE id = ?").get(id);
+    const comp = await db.get("SELECT * FROM components WHERE id = ?", [id]);
     if (!comp) return new Response("Not found", { status: 404 });
-    
+
     let content = {};
-    try { 
+    try {
       const parsed = JSON.parse(comp.content);
       content = (parsed && typeof parsed === 'object') ? parsed : {};
-    } catch (e) {
+    } catch {
       content = {};
     }
-    
+
     content[field] = value;
     const updatedJson = JSON.stringify(content);
     const hmac = signContent(updatedJson);
-    
-    db.run("UPDATE components SET content = ?, hmac_signature = ? WHERE id = ?", [updatedJson, hmac, id]);
-    
+
+    await db.run(
+      "UPDATE components SET content = ?, hmac_signature = ? WHERE id = ?",
+      [updatedJson, hmac, id]
+    );
+
     return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
   } catch (err) {
     console.error("[API ERROR]:", err);
@@ -40,17 +43,20 @@ export const handleUpdateContent = requireAuth(csrfProtect(async (req, params, s
 
 export const componentsList = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const components = db.prepare(`
-    SELECT c.*, 
+  const components = await db.all(`
+    SELECT c.*,
     (SELECT COUNT(*) FROM page_components pc WHERE pc.component_id = c.id) as usage_count
-    FROM components c 
+    FROM components c
     ORDER BY c.created_at DESC
-  `).all();
+  `);
   const csrfToken = generateCsrfToken(session.id);
   const body = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
         <h2>Component Instances</h2>
-        <a href="/admin/components/new" class="btn btn-primary">Create New Component</a>
+        <div>
+            <a href="/admin/components/import" class="btn btn-secondary" style="margin-right:10px">📥 Import Theme ZIP</a>
+            <a href="/admin/components/new" class="btn btn-primary">Create New Component</a>
+        </div>
     </div>
     <div class="card">
         <table>
@@ -83,8 +89,6 @@ export const componentsList = requireAuth(async (req, params, session) => {
 
 export const newComponentPage = requireAuth(async (req, params, session) => {
   const csrfToken = generateCsrfToken(session.id);
-
-  // Dynamically scan available templates
   const { join } = await import("path");
   const { readdirSync } = await import("fs");
   const componentsDir = join(process.cwd(), "themes", "default", "components");
@@ -122,7 +126,6 @@ export const newComponentPage = requireAuth(async (req, params, session) => {
   return new Response(adminHTML("New Component", body, session), { headers: { "Content-Type": "text/html" } });
 });
 
-
 export const handleNewComponent = requireAuth(csrfProtect(async (req, params, session) => {
   const form = req._form;
   const db = getDB();
@@ -135,19 +138,21 @@ export const handleNewComponent = requireAuth(csrfProtect(async (req, params, se
   if (template === "hero") content = JSON.stringify({ title: "New Hero Title", subtitle: "Enter subtitle here", button_text: "Learn More", button_url: "#" });
   if (template === "content-block") content = JSON.stringify({ text: "<p>Start writing...</p>" });
   const hmac = signContent(content);
-  db.run("INSERT INTO components (name, type, content, hmac_signature, is_global, created_by) VALUES (?, ?, ?, ?, ?, ?)", [name, templateType, content, hmac, isGlobal, session.userId]);
+  await db.run(
+    "INSERT INTO components (name, type, content, hmac_signature, is_global, created_by) VALUES (?, ?, ?, ?, ?, ?)",
+    [name, templateType, content, hmac, isGlobal, session.userId]
+  );
   return Response.redirect("/admin/components", 302);
 }));
 
 export const handleToggleGlobal = requireAuth(csrfProtect(async (req, params, session) => {
   const db = getDB();
-  const current = db.prepare("SELECT is_global FROM components WHERE id = ?").get(params.id);
-  if (current) db.run("UPDATE components SET is_global = ? WHERE id = ?", [current.is_global ? 0 : 1, params.id]);
+  const current = await db.get("SELECT is_global FROM components WHERE id = ?", [params.id]);
+  if (current) await db.run("UPDATE components SET is_global = ? WHERE id = ?", [current.is_global ? 0 : 1, params.id]);
   return Response.redirect("/admin/components", 302);
 }));
 
 export const handleDeleteComponent = requireAuth(async (req, params, session) => {
-  const db = getDB();
-  db.run("DELETE FROM components WHERE id = ?", [params.id]);
+  await getDB().run("DELETE FROM components WHERE id = ?", [params.id]);
   return Response.redirect("/admin/components", 302);
 });

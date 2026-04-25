@@ -38,7 +38,7 @@ export async function verifyPassword(password, hash) {
 
 export async function login(username, password) {
   const db = getDB();
-  const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+  const user = await db.get("SELECT * FROM users WHERE username = ?", [username]);
   if (!user || user.is_active === 0) return null;
 
   const valid = await verifyPassword(password, user.password_hash);
@@ -46,36 +46,34 @@ export async function login(username, password) {
 
   const token = generateToken();
   const expiresAt = new Date(Date.now() + SESSION_DURATION).toISOString();
-  
   const sessionData = {
     userId: user.id,
     username: user.username,
     isSuperuser: !!user.is_superuser,
   };
 
-  db.prepare(
-    "INSERT INTO sessions (id, user_id, data, expires_at) VALUES (?, ?, ?, ?)"
-  ).run(token, user.id, JSON.stringify(sessionData), expiresAt);
-  
-  db.run("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", [user.id]);
+  await db.run(
+    "INSERT INTO sessions (id, user_id, data, expires_at) VALUES (?, ?, ?, ?)",
+    [token, user.id, JSON.stringify(sessionData), expiresAt]
+  );
+  await db.run("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", [user.id]);
 
   return token;
 }
 
-export function logout(token) {
+export async function logout(token) {
   if (!token) return;
-  getDB().prepare("DELETE FROM sessions WHERE id = ?").run(token);
+  await getDB().run("DELETE FROM sessions WHERE id = ?", [token]);
 }
 
-export function getSession(token) {
+export async function getSession(token) {
   if (!token) return null;
   const db = getDB();
-  const row = db.prepare("SELECT * FROM sessions WHERE id = ?").get(token);
-  
+  const row = await db.get("SELECT * FROM sessions WHERE id = ?", [token]);
   if (!row) return null;
-  
+
   if (new Date(row.expires_at) < new Date()) {
-    db.prepare("DELETE FROM sessions WHERE id = ?").run(token);
+    await db.run("DELETE FROM sessions WHERE id = ?", [token]);
     return null;
   }
 
@@ -96,7 +94,7 @@ export function getTokenFromRequest(req) {
 export function requireAuth(handler) {
   return async (req, params) => {
     const token = getTokenFromRequest(req);
-    const session = getSession(token);
+    const session = await getSession(token);
     if (!session) {
       const url = new URL(req.url);
       if (url.pathname.startsWith("/admin/api")) return new Response("Unauthorized", { status: 401 });
@@ -108,10 +106,13 @@ export function requireAuth(handler) {
 
 export async function createFirstAdmin(username, password) {
   const db = getDB();
-  const existing = db.prepare("SELECT id FROM users LIMIT 1").get();
+  const existing = await db.get("SELECT id FROM users LIMIT 1");
   if (existing) return false;
 
   const hash = await hashPassword(password);
-  db.run("INSERT INTO users (username, password_hash, is_superuser) VALUES (?, ?, 1)", [username, hash]);
+  await db.run(
+    "INSERT INTO users (username, password_hash, is_superuser) VALUES (?, ?, 1)",
+    [username, hash]
+  );
   return true;
 }

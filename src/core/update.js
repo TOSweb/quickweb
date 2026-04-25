@@ -19,7 +19,7 @@ export function getCurrentVersion() {
 
 // Check npm registry for a newer version. Returns { current, latest, hasUpdate }.
 // Fails silently — never blocks the server.
-export async function checkForUpdate(packageName = "mycms") {
+export async function checkForUpdate(packageName = "veavecms") {
   const current = getCurrentVersion();
   try {
     const res = await fetch(`https://registry.npmjs.org/${packageName}/latest`, {

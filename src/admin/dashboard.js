@@ -6,14 +6,20 @@ import { getCurrentVersion, checkForUpdate } from "../core/update.js";
 
 export const dashboardPage = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const pageCount   = db.prepare("SELECT COUNT(*) as count FROM pages").get().count;
-  const postCount   = db.prepare("SELECT COUNT(*) as count FROM blog_posts").get().count;
-  const userCount   = db.prepare("SELECT COUNT(*) as count FROM users").get().count;
-  const compCount   = db.prepare("SELECT COUNT(*) as count FROM components").get().count;
-  const mediaCount  = db.prepare("SELECT COUNT(*) as count FROM media").get().count;
-  const currentVer  = getCurrentVersion();
+  const [pageRow, postRow, userRow, compRow, mediaRow] = await Promise.all([
+    db.get("SELECT COUNT(*) as count FROM pages"),
+    db.get("SELECT COUNT(*) as count FROM blog_posts"),
+    db.get("SELECT COUNT(*) as count FROM users"),
+    db.get("SELECT COUNT(*) as count FROM components"),
+    db.get("SELECT COUNT(*) as count FROM media"),
+  ]);
+  const pageCount  = pageRow.count;
+  const postCount  = postRow.count;
+  const userCount  = userRow.count;
+  const compCount  = compRow.count;
+  const mediaCount = mediaRow.count;
+  const currentVer = getCurrentVersion();
 
-  // Non-blocking update check — use cached result or skip if slow
   let updateBanner = "";
   try {
     const upd = await checkForUpdate();
@@ -25,10 +31,11 @@ export const dashboardPage = requireAuth(async (req, params, session) => {
     }
   } catch { /* silent */ }
 
+  const recentPages = await db.all("SELECT * FROM pages ORDER BY created_at DESC LIMIT 3");
+
   const body = `
     ${updateBanner}
     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap:20px; margin-bottom:30px">
-        <!-- Main Stats -->
         <div class="card" style="background: var(--primary); color: white; display:flex; flex-direction:column; justify-content:space-between; height: 180px">
             <div>
                 <div style="display:flex; justify-content:space-between; align-items:flex-start">
@@ -50,9 +57,7 @@ export const dashboardPage = requireAuth(async (req, params, session) => {
                 </div>
                 <div style="font-size:48px; font-weight:700; margin-top:10px">${postCount}</div>
             </div>
-            <div style="font-size:12px; color:var(--primary); font-weight:600">
-                Active publications
-            </div>
+            <div style="font-size:12px; color:var(--primary); font-weight:600">Active publications</div>
         </div>
 
         <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; height: 180px">
@@ -63,9 +68,7 @@ export const dashboardPage = requireAuth(async (req, params, session) => {
                 </div>
                 <div style="font-size:48px; font-weight:700; margin-top:10px">${compCount}</div>
             </div>
-            <div style="font-size:12px; color:var(--text-muted)">
-                Modular blocks
-            </div>
+            <div style="font-size:12px; color:var(--text-muted)">Modular blocks</div>
         </div>
 
         <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; height: 180px">
@@ -78,6 +81,7 @@ export const dashboardPage = requireAuth(async (req, params, session) => {
             </div>
             <div style="font-size:12px; color:var(--text-muted)">Collaborators</div>
         </div>
+
         <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; height: 180px">
             <div>
                 <div style="display:flex; justify-content:space-between; align-items:flex-start">
@@ -90,7 +94,6 @@ export const dashboardPage = requireAuth(async (req, params, session) => {
         </div>
     </div>
 
-    <!-- Middle Section -->
     <div style="display:grid; grid-template-columns: 1.5fr 1fr 1fr; gap:20px; margin-bottom:30px">
         <div class="card" style="grid-column: span 1">
             <h3 style="font-size:16px; margin-bottom:20px">Analytics View</h3>
@@ -103,29 +106,26 @@ export const dashboardPage = requireAuth(async (req, params, session) => {
                 <div style="flex:1; height:30%; background:#f1f5f9; border-radius:6px"></div>
             </div>
         </div>
-        
+
         <div class="card">
             <h3 style="font-size:16px; margin-bottom:15px">Quick Status</h3>
             <div style="padding:15px; background:var(--primary-bg); border-radius:12px; display:flex; align-items:center; gap:10px">
                 <div style="width:10px; height:10px; background:var(--primary); border-radius:50%"></div>
                 <span style="font-size:14px; font-weight:600; color:var(--primary)">System Healthy</span>
             </div>
-            <div style="margin-top:15px; font-size:13px; color:var(--text-muted)">
-                All security modules active (HMAC/CSRF).
-            </div>
+            <div style="margin-top:15px; font-size:13px; color:var(--text-muted)">All security modules active (HMAC/CSRF).</div>
         </div>
 
         <div class="card" style="display:flex; flex-direction:column; justify-content:center; align-items:center; background:#fbfcfc">
              <div style="font-size:24px; font-weight:700">v${currentVer}</div>
-             <div style="font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-top:4px">MyCMS</div>
+             <div style="font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-top:4px">Veave CMS</div>
              <a href="/sitemap.xml" target="_blank" style="font-size:11px; color:var(--primary); margin-top:12px; text-decoration:none">View Sitemap →</a>
         </div>
     </div>
 
-    <!-- Active Projects / Pages -->
     <div class="card">
         <h3 style="font-size:16px; margin-bottom:20px">Recent Pages</h3>
-        ${db.prepare("SELECT * FROM pages ORDER BY created_at DESC LIMIT 3").all().map(p => `
+        ${recentPages.map(p => `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #f8fafc">
             <div style="display:flex; align-items:center; gap:15px">
                 <div style="width:36px; height:36px; background:#f1f5f9; border-radius:10px; display:flex; align-items:center; justify-content:center">📄</div>

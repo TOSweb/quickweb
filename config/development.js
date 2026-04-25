@@ -6,6 +6,7 @@ export default {
   siteUrl: "http://localhost:8000",
 
   db: {
+    driver: "sqlite",
     path: "./data/cms-dev.db",
   },
 

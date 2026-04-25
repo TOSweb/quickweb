@@ -1,14 +1,13 @@
 // src/seo/schema.js — JSON-LD structured data
-import { getSetting } from "../db.js";
-import { getDB } from "../db.js";
+import { getSetting, getDB } from "../db.js";
 
-export function buildSchema({ post, page, siteUrl } = {}) {
+export async function buildSchema({ post, page, siteUrl } = {}) {
   const base = siteUrl || getSetting("site_url") || "";
   const siteTitle = getSetting("site_title") || "";
 
   if (post) {
     const author = post.author_id
-      ? getDB().prepare("SELECT username FROM users WHERE id = ?").get(post.author_id)
+      ? await getDB().get("SELECT username FROM users WHERE id = ?", [post.author_id])
       : null;
 
     const schema = {
@@ -18,17 +17,13 @@ export function buildSchema({ post, page, siteUrl } = {}) {
       description: post.meta_description || post.excerpt || undefined,
       image: post.og_image || post.featured_image || undefined,
       author: { "@type": "Person", name: author?.username || siteTitle },
-      publisher: {
-        "@type": "Organization",
-        name: siteTitle,
-      },
+      publisher: { "@type": "Organization", name: siteTitle },
       datePublished: post.publish_at || post.created_at,
       dateModified: post.updated_at || post.created_at,
       mainEntityOfPage: `${base}/blog/${post.slug}`,
       url: post.canonical_url || `${base}/blog/${post.slug}`,
     };
 
-    // Strip undefined keys
     return jsonLdTag(cleanObj(schema));
   }
 

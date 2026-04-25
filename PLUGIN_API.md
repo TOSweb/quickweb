@@ -1,4 +1,4 @@
-# MyCMS — Plugin Developer Guide
+# Veave CMS — Plugin Developer Guide
 
 Plugins live in the `/plugins` directory. Each plugin is a folder with an `index.js` file that exports a `register()` function.
 

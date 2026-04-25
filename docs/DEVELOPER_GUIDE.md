@@ -1,6 +1,6 @@
-# MyCMS — Developer Guide
+# Veave CMS — Developer Guide
 
-> **Who this is for:** JavaScript developers who want to understand the codebase, extend the admin, add features, or integrate MyCMS with other systems.
+> **Who this is for:** JavaScript developers who want to understand the codebase, extend the admin, add features, or integrate Veave CMS with other systems.
 
 ---
 
@@ -198,7 +198,7 @@ config.debug.showStackTraces
 
 ## 5. Database
 
-MyCMS uses **better-sqlite3** (synchronous SQLite). All queries use prepared statements — never template literals.
+Veave CMS uses **better-sqlite3** (synchronous SQLite). All queries use prepared statements — never template literals.
 
 ### Getting the DB handle
 
@@ -570,7 +570,7 @@ Or use the compiled binary:
 
 ```bash
 NODE_ENV=production bun run build
-NODE_ENV=production ./mycms
+NODE_ENV=production ./veavecms
 ```
 
 ---

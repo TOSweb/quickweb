@@ -9,7 +9,8 @@ function authLayout(title, content) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} — MyCMS</title>
+    <title>${title} — Veave CMS</title>
+    ${getSetting('favicon') ? `<link rel="icon" href="${getSetting('favicon')}">` : ''}
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -37,8 +38,9 @@ function authLayout(title, content) {
             max-width: 440px;
             text-align: center;
         }
-        .brand { font-size: 28px; font-weight: 700; margin-bottom: 40px; color: var(--primary); }
-        .brand span { background: var(--primary); color: white; padding: 0 10px; border-radius: 8px; margin-right: 8px; }
+        .brand { font-size: 28px; font-weight: 700; margin-bottom: 40px; color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .brand span.text-icon { background: var(--primary); color: white; padding: 0 10px; border-radius: 8px; }
+        .brand img { max-width: 100%; height: 36px; object-fit: contain; }
         
         h1 { font-size: 24px; margin-bottom: 30px; font-weight: 700; }
         
@@ -62,7 +64,12 @@ function authLayout(title, content) {
 </head>
 <body>
     <div class="auth-card">
-        <div class="brand"><span>M</span> MyCMS</div>
+        <div class="brand">
+            ${getSetting('site_logo') 
+                ? `<img src="${getSetting('site_logo')}" alt="Veave CMS">` 
+                : `<span class="text-icon">V</span> Veave CMS`
+            }
+        </div>
         ${content}
     </div>
 </body>
@@ -124,9 +131,9 @@ export async function handleSetup(req) {
   return new Response(authLayout("Error", `<h1>Setup Blocked</h1><p>System already initialized.</p><a href="/admin/login">Go to Login</a>`), { status: 400, headers: { "Content-Type": "text/html" } });
 }
 
-export function handleLogout(req) {
+export async function handleLogout(req) {
   const token = getTokenFromRequest(req);
-  logout(token);
+  await logout(token);
   return new Response("Logged out", {
     status: 302,
     headers: {

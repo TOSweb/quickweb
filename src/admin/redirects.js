@@ -6,7 +6,7 @@ import { csrfProtect, generateCsrfToken } from "../core/csrf.js";
 
 export const redirectsList = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const redirects = db.prepare("SELECT * FROM redirects ORDER BY created_at DESC").all();
+  const redirects = await db.all("SELECT * FROM redirects ORDER BY created_at DESC");
   const csrfToken = generateCsrfToken(session.id);
 
   const rows = redirects.map(r => `
@@ -72,15 +72,16 @@ export const handleNewRedirect = requireAuth(csrfProtect(async (req, params, ses
   if (!fromUrl || !toUrl) return new Response("Both URLs required", { status: 400 });
   if (![301, 302].includes(statusCode)) return new Response("Invalid status code", { status: 400 });
 
-  getDB().prepare(
-    "INSERT OR REPLACE INTO redirects (from_url, to_url, status_code) VALUES (?, ?, ?)"
-  ).run(fromUrl, toUrl, statusCode);
+  await getDB().run(
+    "INSERT OR REPLACE INTO redirects (from_url, to_url, status_code) VALUES (?, ?, ?)",
+    [fromUrl, toUrl, statusCode]
+  );
 
   return Response.redirect("/admin/redirects", 302);
 }));
 
 export const handleDeleteRedirect = requireAuth(csrfProtect(async (req, params, session) => {
-  getDB().prepare("DELETE FROM redirects WHERE id = ?").run(params.id);
+  await getDB().run("DELETE FROM redirects WHERE id = ?", [params.id]);
   return Response.redirect("/admin/redirects", 302);
 }));
 

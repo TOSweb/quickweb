@@ -18,12 +18,12 @@ function slugify(str) {
 
 export const blogList = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const posts = db.prepare(`
+  const posts = await db.all(`
     SELECT bp.*, u.username as author_name
     FROM blog_posts bp
     LEFT JOIN users u ON u.id = bp.author_id
     ORDER BY bp.created_at DESC
-  `).all();
+  `);
 
   const csrfToken = generateCsrfToken(session.id);
 
@@ -69,8 +69,8 @@ export const blogList = requireAuth(async (req, params, session) => {
 
 export const newPostPage = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const categories = db.prepare("SELECT * FROM blog_categories ORDER BY name").all();
-  const tags = db.prepare("SELECT * FROM blog_tags ORDER BY name").all();
+  const categories = await db.all("SELECT * FROM blog_categories ORDER BY name");
+  const tags = await db.all("SELECT * FROM blog_tags ORDER BY name");
   const csrfToken = generateCsrfToken(session.id);
 
   const body = postForm({ csrfToken, categories, tags, action: "/admin/blog/new", post: null });
@@ -85,8 +85,7 @@ export const handleNewPost = requireAuth(csrfProtect(async (req, params, session
   if (!title) return new Response("Title required", { status: 400 });
 
   const slug = form.get("slug")?.trim() || slugify(title);
-  const rawContent = form.get("content") || "";
-  const content = sanitizeHtml(rawContent);
+  const content = sanitizeHtml(form.get("content") || "");
   const excerpt = form.get("excerpt")?.trim() || null;
   const status = form.get("status") || "draft";
   const seoTitle = form.get("seo_title")?.trim() || null;
@@ -101,35 +100,32 @@ export const handleNewPost = requireAuth(csrfProtect(async (req, params, session
     return new Response("Meta description must be 160 characters or fewer", { status: 400 });
   }
 
-  // Warn if publishing with missing SEO fields (don't block)
-  const seoWarning = status === "published" && (!seoTitle && !title || !metaDesc)
-    ? "<!-- SEO fields incomplete -->" : "";
-
-  const result = db.prepare(`
+  const result = await db.run(`
     INSERT INTO blog_posts
       (title, slug, content, excerpt, featured_image, featured_image_alt,
        seo_title, meta_description, og_title, og_description, schema_type,
        status, author_id)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    title, slug, content, excerpt, featuredImage, featuredImageAlt,
-    seoTitle, metaDesc, ogTitle, ogDesc, schemaType,
-    status, session.userId
-  );
+  `, [title, slug, content, excerpt, featuredImage, featuredImageAlt,
+      seoTitle, metaDesc, ogTitle, ogDesc, schemaType, status, session.userId]);
 
   const postId = result.lastInsertRowid;
-  createObjectPermissions("blogpost", postId);
+  await createObjectPermissions("blogpost", postId);
 
-  // Categories
   for (const catId of form.getAll("categories")) {
-    db.prepare("INSERT OR IGNORE INTO blog_post_categories (post_id, category_id) VALUES (?, ?)").run(postId, catId);
+    await db.run(
+      "INSERT OR IGNORE INTO blog_post_categories (post_id, category_id) VALUES (?, ?)",
+      [postId, catId]
+    );
   }
-  // Tags — create new tags on the fly
   for (const tagName of (form.get("tags") || "").split(",").map(t => t.trim()).filter(Boolean)) {
     const tagSlug = slugify(tagName);
-    db.prepare("INSERT OR IGNORE INTO blog_tags (name, slug) VALUES (?, ?)").run(tagName, tagSlug);
-    const tag = db.prepare("SELECT id FROM blog_tags WHERE slug = ?").get(tagSlug);
-    if (tag) db.prepare("INSERT OR IGNORE INTO blog_post_tags (post_id, tag_id) VALUES (?, ?)").run(postId, tag.id);
+    await db.run("INSERT OR IGNORE INTO blog_tags (name, slug) VALUES (?, ?)", [tagName, tagSlug]);
+    const tag = await db.get("SELECT id FROM blog_tags WHERE slug = ?", [tagSlug]);
+    if (tag) await db.run(
+      "INSERT OR IGNORE INTO blog_post_tags (post_id, tag_id) VALUES (?, ?)",
+      [postId, tag.id]
+    );
   }
 
   if (status === "published") invalidateSitemap();
@@ -141,18 +137,21 @@ export const handleNewPost = requireAuth(csrfProtect(async (req, params, session
 
 export const editPostPage = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const post = db.prepare("SELECT * FROM blog_posts WHERE id = ?").get(params.id);
+  const post = await db.get("SELECT * FROM blog_posts WHERE id = ?", [params.id]);
   if (!post) return new Response("Post not found", { status: 404 });
 
-  const categories = db.prepare("SELECT * FROM blog_categories ORDER BY name").all();
-  const allTags = db.prepare("SELECT * FROM blog_tags ORDER BY name").all();
-  const postCatIds = db.prepare("SELECT category_id FROM blog_post_categories WHERE post_id = ?")
-    .all(params.id).map(r => r.category_id);
-  const postTags = db.prepare(`
+  const categories = await db.all("SELECT * FROM blog_categories ORDER BY name");
+  const allTags = await db.all("SELECT * FROM blog_tags ORDER BY name");
+  const postCatRows = await db.all(
+    "SELECT category_id FROM blog_post_categories WHERE post_id = ?", [params.id]
+  );
+  const postCatIds = postCatRows.map(r => r.category_id);
+  const postTagRows = await db.all(`
     SELECT bt.name FROM blog_tags bt
     JOIN blog_post_tags bpt ON bpt.tag_id = bt.id
     WHERE bpt.post_id = ?
-  `).all(params.id).map(r => r.name);
+  `, [params.id]);
+  const postTags = postTagRows.map(r => r.name);
 
   const csrfToken = generateCsrfToken(session.id);
   const body = postForm({ csrfToken, categories, tags: allTags, action: `/admin/blog/${post.id}/edit`, post, postCatIds, postTags });
@@ -163,15 +162,14 @@ export const handleEditPost = requireAuth(csrfProtect(async (req, params, sessio
   const form = req._form;
   const db = getDB();
 
-  const post = db.prepare("SELECT * FROM blog_posts WHERE id = ?").get(params.id);
+  const post = await db.get("SELECT * FROM blog_posts WHERE id = ?", [params.id]);
   if (!post) return new Response("Post not found", { status: 404 });
 
   const title = form.get("title")?.trim();
   if (!title) return new Response("Title required", { status: 400 });
 
   const newSlug = form.get("slug")?.trim() || slugify(title);
-  const rawContent = form.get("content") || "";
-  const content = sanitizeHtml(rawContent);
+  const content = sanitizeHtml(form.get("content") || "");
   const excerpt = form.get("excerpt")?.trim() || null;
   const status = form.get("status") || "draft";
   const seoTitle = form.get("seo_title")?.trim() || null;
@@ -186,41 +184,42 @@ export const handleEditPost = requireAuth(csrfProtect(async (req, params, sessio
     return new Response("Meta description must be 160 characters or fewer", { status: 400 });
   }
 
-  // If slug changed on a published post, create a redirect
   if (post.slug !== newSlug && post.status === "published") {
-    db.prepare(
-      "INSERT OR IGNORE INTO redirects (from_url, to_url, status_code) VALUES (?, ?, 301)"
-    ).run(`/blog/${post.slug}`, `/blog/${newSlug}`);
+    await db.run(
+      "INSERT OR IGNORE INTO redirects (from_url, to_url, status_code) VALUES (?, ?, 301)",
+      [`/blog/${post.slug}`, `/blog/${newSlug}`]
+    );
   }
 
   const wasPublished = post.status === "published";
   const nowPublished = status === "published";
 
-  db.prepare(`
+  await db.run(`
     UPDATE blog_posts SET
       title=?, slug=?, content=?, excerpt=?, featured_image=?, featured_image_alt=?,
       seo_title=?, meta_description=?, og_title=?, og_description=?, schema_type=?,
       status=?, updated_at=CURRENT_TIMESTAMP
     WHERE id=?
-  `).run(
-    title, newSlug, content, excerpt, featuredImage, featuredImageAlt,
-    seoTitle, metaDesc, ogTitle, ogDesc, schemaType,
-    status, params.id
-  );
+  `, [title, newSlug, content, excerpt, featuredImage, featuredImageAlt,
+      seoTitle, metaDesc, ogTitle, ogDesc, schemaType, status, params.id]);
 
-  // Sync categories
-  db.prepare("DELETE FROM blog_post_categories WHERE post_id=?").run(params.id);
+  await db.run("DELETE FROM blog_post_categories WHERE post_id=?", [params.id]);
   for (const catId of form.getAll("categories")) {
-    db.prepare("INSERT OR IGNORE INTO blog_post_categories (post_id, category_id) VALUES (?, ?)").run(params.id, catId);
+    await db.run(
+      "INSERT OR IGNORE INTO blog_post_categories (post_id, category_id) VALUES (?, ?)",
+      [params.id, catId]
+    );
   }
 
-  // Sync tags
-  db.prepare("DELETE FROM blog_post_tags WHERE post_id=?").run(params.id);
+  await db.run("DELETE FROM blog_post_tags WHERE post_id=?", [params.id]);
   for (const tagName of (form.get("tags") || "").split(",").map(t => t.trim()).filter(Boolean)) {
     const tagSlug = slugify(tagName);
-    db.prepare("INSERT OR IGNORE INTO blog_tags (name, slug) VALUES (?, ?)").run(tagName, tagSlug);
-    const tag = db.prepare("SELECT id FROM blog_tags WHERE slug = ?").get(tagSlug);
-    if (tag) db.prepare("INSERT OR IGNORE INTO blog_post_tags (post_id, tag_id) VALUES (?, ?)").run(params.id, tag.id);
+    await db.run("INSERT OR IGNORE INTO blog_tags (name, slug) VALUES (?, ?)", [tagName, tagSlug]);
+    const tag = await db.get("SELECT id FROM blog_tags WHERE slug = ?", [tagSlug]);
+    if (tag) await db.run(
+      "INSERT OR IGNORE INTO blog_post_tags (post_id, tag_id) VALUES (?, ?)",
+      [params.id, tag.id]
+    );
   }
 
   if (wasPublished !== nowPublished) invalidateSitemap();
@@ -232,11 +231,11 @@ export const handleEditPost = requireAuth(csrfProtect(async (req, params, sessio
 
 export const handleDeletePost = requireAuth(csrfProtect(async (req, params, session) => {
   const db = getDB();
-  const post = db.prepare("SELECT id, status FROM blog_posts WHERE id = ?").get(params.id);
+  const post = await db.get("SELECT id, status FROM blog_posts WHERE id = ?", [params.id]);
   if (!post) return new Response("Post not found", { status: 404 });
 
-  deleteObjectPermissions("blogpost", params.id);
-  db.prepare("DELETE FROM blog_posts WHERE id = ?").run(params.id);
+  await deleteObjectPermissions("blogpost", params.id);
+  await db.run("DELETE FROM blog_posts WHERE id = ?", [params.id]);
   invalidateSitemap();
   return Response.redirect("/admin/blog", 302);
 }));
@@ -245,12 +244,12 @@ export const handleDeletePost = requireAuth(csrfProtect(async (req, params, sess
 
 export const categoriesList = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const cats = db.prepare(`
+  const cats = await db.all(`
     SELECT bc.*, COUNT(bpc.post_id) as post_count
     FROM blog_categories bc
     LEFT JOIN blog_post_categories bpc ON bpc.category_id = bc.id
     GROUP BY bc.id ORDER BY bc.name
-  `).all();
+  `);
   const csrfToken = generateCsrfToken(session.id);
 
   const rows = cats.map(c => `
@@ -296,12 +295,15 @@ export const handleNewCategory = requireAuth(csrfProtect(async (req, params, ses
   const slug = form.get("slug")?.trim() || slugify(name);
   const description = form.get("description")?.trim() || null;
   const metaDesc = form.get("meta_description")?.trim() || null;
-  getDB().prepare("INSERT INTO blog_categories (name, slug, description, meta_description) VALUES (?, ?, ?, ?)").run(name, slug, description, metaDesc);
+  await getDB().run(
+    "INSERT INTO blog_categories (name, slug, description, meta_description) VALUES (?, ?, ?, ?)",
+    [name, slug, description, metaDesc]
+  );
   return Response.redirect("/admin/blog/categories", 302);
 }));
 
 export const editCategoryPage = requireAuth(async (req, params, session) => {
-  const cat = getDB().prepare("SELECT * FROM blog_categories WHERE id = ?").get(params.id);
+  const cat = await getDB().get("SELECT * FROM blog_categories WHERE id = ?", [params.id]);
   if (!cat) return new Response("Category not found", { status: 404 });
   const csrfToken = generateCsrfToken(session.id);
   const body = categoryForm({ csrfToken, action: `/admin/blog/categories/${cat.id}/edit`, cat });
@@ -315,12 +317,15 @@ export const handleEditCategory = requireAuth(csrfProtect(async (req, params, se
   const slug = form.get("slug")?.trim() || slugify(name);
   const description = form.get("description")?.trim() || null;
   const metaDesc = form.get("meta_description")?.trim() || null;
-  getDB().prepare("UPDATE blog_categories SET name=?, slug=?, description=?, meta_description=? WHERE id=?").run(name, slug, description, metaDesc, params.id);
+  await getDB().run(
+    "UPDATE blog_categories SET name=?, slug=?, description=?, meta_description=? WHERE id=?",
+    [name, slug, description, metaDesc, params.id]
+  );
   return Response.redirect("/admin/blog/categories", 302);
 }));
 
 export const handleDeleteCategory = requireAuth(csrfProtect(async (req, params, session) => {
-  getDB().prepare("DELETE FROM blog_categories WHERE id = ?").run(params.id);
+  await getDB().run("DELETE FROM blog_categories WHERE id = ?", [params.id]);
   return Response.redirect("/admin/blog/categories", 302);
 }));
 
@@ -351,7 +356,7 @@ function postForm({ csrfToken, categories, tags, action, post, postCatIds = [], 
             <label style="font-weight:600;font-size:13px">Slug</label>
             <input type="text" name="slug" value="${v("slug")}" placeholder="auto-generated from title">
             <label style="font-weight:600;font-size:13px">Content</label>
-            <textarea name="content" rows="16" style="font-family:monospace;font-size:13px">${v("content")}</textarea>
+            <textarea name="content" class="richtext" rows="16" style="font-family:monospace;font-size:13px">${v("content")}</textarea>
             <label style="font-weight:600;font-size:13px">Excerpt <span style="color:#94a3b8;font-weight:400">(optional)</span></label>
             <textarea name="excerpt" rows="3">${v("excerpt")}</textarea>
           </div>

@@ -8,7 +8,7 @@ import { router } from "./router.js";
 import { securityHeaders } from "./core/headers.js";
 
 async function start() {
-  console.log(`⬡  MyCMS starting [${config.env}]...`);
+  console.log(`⬡  Veave CMS starting [${config.env}]...`);
 
   await initDB();
   initTheme();

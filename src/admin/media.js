@@ -12,20 +12,16 @@ const MAGIC_BYTES = {
   "image/png":       [[0x89, 0x50, 0x4E, 0x47]],
   "image/webp":      [[0x52, 0x49, 0x46, 0x46]],
   "image/gif":       [[0x47, 0x49, 0x46, 0x38]],
-  "image/svg+xml":   null,                          // SVG is text; skip magic check, rely on MIME allowlist
+  "image/svg+xml":   null,
   "application/pdf": [[0x25, 0x50, 0x44, 0x46]],
 };
 
 async function validateUpload(file) {
   const maxBytes = (config.uploads.maxSizeMb || 10) * 1024 * 1024;
-  if (file.size > maxBytes) {
-    throw new Error(`File too large. Max ${config.uploads.maxSizeMb}MB.`);
-  }
+  if (file.size > maxBytes) throw new Error(`File too large. Max ${config.uploads.maxSizeMb}MB.`);
 
   const allowed = config.uploads.allowedMimeTypes || [];
-  if (!allowed.includes(file.type)) {
-    throw new Error(`File type not allowed: ${file.type}`);
-  }
+  if (!allowed.includes(file.type)) throw new Error(`File type not allowed: ${file.type}`);
 
   const buffer = await file.arrayBuffer();
   const bytes = new Uint8Array(buffer.slice(0, 8));
@@ -46,9 +42,7 @@ async function validateUpload(file) {
 
 export const mediaLibrary = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const items = db.prepare(
-    "SELECT * FROM media ORDER BY uploaded_at DESC"
-  ).all();
+  const items = await db.all("SELECT * FROM media ORDER BY uploaded_at DESC");
   const csrfToken = generateCsrfToken(session.id);
 
   const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
@@ -129,7 +123,6 @@ export const mediaLibrary = requireAuth(async (req, params, session) => {
 // ─── Upload handler ───────────────────────────────────────────────────────────
 
 export const handleUpload = requireAuth(async (req, params, session) => {
-  // CSRF check — form data already parsed in router.js
   const form = req._form;
   if (!form) return new Response("No form data", { status: 400 });
 
@@ -153,13 +146,10 @@ export const handleUpload = requireAuth(async (req, params, session) => {
       const filePath = join(uploadDir, safeName);
       await Bun.write(filePath, buffer);
 
-      const relPath = `uploads/${safeName}`;
-      const fileUrl = `/uploads/${safeName}`;
-
-      db.prepare(`
+      await db.run(`
         INSERT INTO media (filename, original_name, path, url, mime_type, size, uploaded_by)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(safeName, originalName, relPath, fileUrl, mimeType, size, session.userId);
+      `, [safeName, originalName, `uploads/${safeName}`, `/uploads/${safeName}`, mimeType, size, session.userId]);
 
     } catch (err) {
       console.error("Upload error:", err.message);
@@ -181,20 +171,17 @@ export const handleUpload = requireAuth(async (req, params, session) => {
 
 export const handleDeleteMedia = requireAuth(csrfProtect(async (req, params, session) => {
   const db = getDB();
-  const item = db.prepare("SELECT * FROM media WHERE id = ?").get(params.id);
+  const item = await db.get("SELECT * FROM media WHERE id = ?", [params.id]);
   if (!item) return new Response("Not found", { status: 404 });
 
-  // Delete file from disk
   const filePath = join(process.cwd(), item.path);
   if (existsSync(filePath)) {
     try { unlinkSync(filePath); } catch {}
   }
 
-  db.prepare("DELETE FROM media WHERE id = ?").run(params.id);
+  await db.run("DELETE FROM media WHERE id = ?", [params.id]);
   return Response.redirect("/admin/media", 302);
 }));
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fileIcon(mimeType) {
   if (mimeType === "application/pdf") return "📄";

@@ -1,6 +1,6 @@
-# MyCMS — Plugin Guide
+# Veave CMS — Plugin Guide
 
-> **Who this is for:** JavaScript developers who want to extend MyCMS without modifying core files.
+> **Who this is for:** JavaScript developers who want to extend Veave CMS without modifying core files.
 
 ---
 
@@ -22,7 +22,7 @@
 
 ## 1. How plugins work
 
-At startup, MyCMS scans the `plugins/` directory. Every subdirectory that contains an `index.js` is treated as a plugin. The file's `register()` export is called once with a set of helper functions that let the plugin add tags, filters, and hooks.
+At startup, Veave CMS scans the `plugins/` directory. Every subdirectory that contains an `index.js` is treated as a plugin. The file's `register()` export is called once with a set of helper functions that let the plugin add tags, filters, and hooks.
 
 Plugins run in the same Node/Bun process as the server. There is no sandboxing — a plugin can crash the server or introduce security vulnerabilities, so only install plugins you trust.
 

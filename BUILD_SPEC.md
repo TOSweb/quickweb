@@ -1,4 +1,4 @@
-# MyCMS — Build Specification
+# Veave CMS — Build Specification
 > Internal developer document. Read this before touching any code.
 
 ---
@@ -24,7 +24,7 @@
 
 ## 1. Project Overview
 
-MyCMS is a hybrid page-builder CMS built on Bun + JavaScript + SQLite.
+Veave CMS is a hybrid page-builder CMS built on Bun + JavaScript + SQLite.
 
 **Core philosophy:**
 - Security first, then features
@@ -43,7 +43,7 @@ Both can exist on the same installation.
 ## 2. Repository Structure
 
 ```
-mycms/
+veavecms/
 ├── src/
 │   ├── index.js                  Entry point
 │   ├── router.js                 Public request router
@@ -1310,21 +1310,21 @@ bun dev          # Hot reload via --watch
 
 ```bash
 NODE_ENV=production bun run build
-# Output: ./mycms  (single executable, ~15MB)
+# Output: ./veavecms  (single executable, ~15MB)
 
 # Upload to server
-scp mycms user@server:/srv/cms/
+scp veavecms user@server:/srv/cms/
 scp .env.production user@server:/srv/cms/.env.production
 
 # Run
-NODE_ENV=production ./mycms
+NODE_ENV=production ./veavecms
 ```
 
 ### Systemd service
 
 ```ini
 [Unit]
-Description=MyCMS
+Description=Veave CMS
 After=network.target
 
 [Service]
@@ -1333,7 +1333,7 @@ User=www-data
 WorkingDirectory=/srv/cms
 EnvironmentFile=/srv/cms/.env.production
 Environment=NODE_ENV=production
-ExecStart=/srv/cms/mycms
+ExecStart=/srv/cms/veavecms
 Restart=always
 RestartSec=5
 

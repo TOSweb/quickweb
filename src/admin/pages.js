@@ -14,12 +14,10 @@ function getAvailableComponents() {
 
   for (const entry of entries) {
     if (entry.isDirectory()) {
-      // Folder-based template (e.g., hero/template.njk)
       const label = entry.name.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
       const type = entry.name === "post-loop" ? "dynamic" : "static";
       components.push({ type, name: entry.name, label });
     } else if (entry.name.endsWith(".html")) {
-      // Standalone HTML template (e.g., hero-banner.html)
       const name = entry.name.replace(".html", "");
       const label = name.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
       components.push({ type: "static", name, label });
@@ -29,10 +27,9 @@ function getAvailableComponents() {
   return components;
 }
 
-
 export const pagesList = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const pages = db.prepare("SELECT * FROM pages ORDER BY created_at DESC").all();
+  const pages = await db.all("SELECT * FROM pages ORDER BY created_at DESC");
 
   const body = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
@@ -91,16 +88,16 @@ export const newPagePage = requireAuth(async (req, params, session) => {
 
 export const pageEditor = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const page = db.prepare("SELECT * FROM pages WHERE id = ?").get(params.id);
+  const page = await db.get("SELECT * FROM pages WHERE id = ?", [params.id]);
   if (!page) return new Response("Page not found", { status: 404 });
 
-  const activeComponents = db.prepare(`
-    SELECT c.*, pc.id as mapping_id, pc.sort_order 
+  const activeComponents = await db.all(`
+    SELECT c.*, pc.id as mapping_id, pc.sort_order
     FROM components c
     JOIN page_components pc ON c.id = pc.component_id
     WHERE pc.page_id = ?
     ORDER BY pc.sort_order ASC
-  `).all(params.id);
+  `, [params.id]);
 
   const available = getAvailableComponents();
   const csrfToken = generateCsrfToken(session.id);
@@ -171,19 +168,30 @@ export const handleAddComponent = requireAuth(csrfProtect(async (req, params, se
   const name = form.get("name");
   const type = form.get("type");
 
-  let content = "{}";
-  
+  const content = "{}";
   const hmac = signContent(content);
-  const compResult = db.prepare("INSERT INTO components (name, type, content, hmac_signature, created_by) VALUES (?, ?, ?, ?, ?)").run(name, type, content, hmac, session.userId);
-  db.prepare("INSERT INTO page_components (page_id, component_id, sort_order) VALUES (?, ?, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM page_components WHERE page_id = ?))").run(pageId, compResult.lastInsertRowid, pageId);
+  const compResult = await db.run(
+    "INSERT INTO components (name, type, content, hmac_signature, created_by) VALUES (?, ?, ?, ?, ?)",
+    [name, type, content, hmac, session.userId]
+  );
+
+  // Get next sort_order without a self-referencing subquery (MySQL safe)
+  const orderRow = await db.get(
+    "SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM page_components WHERE page_id = ?",
+    [pageId]
+  );
+  await db.run(
+    "INSERT INTO page_components (page_id, component_id, sort_order) VALUES (?, ?, ?)",
+    [pageId, compResult.lastInsertRowid, orderRow.next_order]
+  );
 
   return Response.redirect(`/admin/pages/edit/${pageId}`, 302);
 }));
 
 export const handleRemoveComponent = requireAuth(csrfProtect(async (req, params, session) => {
   const db = getDB();
-  const mapping = db.prepare("SELECT page_id FROM page_components WHERE id = ?").get(params.id);
-  if (mapping) db.run("DELETE FROM page_components WHERE id = ?", [params.id]);
+  const mapping = await db.get("SELECT page_id FROM page_components WHERE id = ?", [params.id]);
+  if (mapping) await db.run("DELETE FROM page_components WHERE id = ?", [params.id]);
   return Response.redirect(`/admin/pages/edit/${mapping.page_id}`, 302);
 }));
 
@@ -191,7 +199,10 @@ export const handleNewPage = requireAuth(csrfProtect(async (req, params, session
   const form = req._form;
   const db = getDB();
   try {
-    const result = db.prepare("INSERT INTO pages (title, slug, created_by) VALUES (?, ?, ?)").run(form.get("title"), form.get("slug") || "", session.userId);
+    const result = await db.run(
+      "INSERT INTO pages (title, slug, created_by) VALUES (?, ?, ?)",
+      [form.get("title"), form.get("slug") || "", session.userId]
+    );
     return Response.redirect(`/admin/pages/edit/${result.lastInsertRowid}`, 302);
   } catch (e) {
     return new Response("Error: Slug might already be in use.", { status: 400 });
@@ -200,10 +211,10 @@ export const handleNewPage = requireAuth(csrfProtect(async (req, params, session
 
 export const handleToggleStatus = requireAuth(csrfProtect(async (req, params, session) => {
   const db = getDB();
-  const current = db.prepare("SELECT status FROM pages WHERE id = ?").get(params.id);
+  const current = await db.get("SELECT status FROM pages WHERE id = ?", [params.id]);
   if (current) {
     const next = current.status === 'published' ? 'draft' : 'published';
-    db.prepare("UPDATE pages SET status = ? WHERE id = ?").run(next, params.id);
+    await db.run("UPDATE pages SET status = ? WHERE id = ?", [next, params.id]);
   }
   return Response.redirect(`/admin/pages/edit/${params.id}`, 302);
 }));

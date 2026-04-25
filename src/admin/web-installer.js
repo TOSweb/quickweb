@@ -10,7 +10,7 @@ function installerLayout(title, content) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title} — MyCMS Installer</title>
+    <title>${title} — Veave CMS Installer</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -56,7 +56,7 @@ function installerLayout(title, content) {
 </head>
 <body>
     <div class="auth-card">
-        <div class="brand"><span>M</span> MyCMS</div>
+        <div class="brand"><span>M</span> Veave CMS</div>
         ${content}
     </div>
 </body>
@@ -65,7 +65,7 @@ function installerLayout(title, content) {
 
 export async function webInstallerPage(req) {
   const content = `
-    <h1>Welcome to MyCMS</h1>
+    <h1>Welcome to Veave CMS</h1>
     <p>It looks like this is a fresh installation. We need to generate cryptographic secrets and set up your environment configuration before proceeding.</p>
     
     <div class="logs">

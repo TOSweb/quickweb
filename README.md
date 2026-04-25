@@ -1,4 +1,4 @@
-# MyCMS
+# Veave CMS
 
 A hybrid page-builder CMS built on **Bun + JavaScript + SQLite**.  
 No PHP, no MySQL, no runtime dependencies beyond the single binary.
@@ -123,9 +123,9 @@ data/
 
 ```bash
 NODE_ENV=production bun run build
-# Output: ./mycms  (~15 MB, self-contained)
+# Output: ./veavecms  (~15 MB, self-contained)
 
-scp mycms user@server:/srv/cms/mycms
+scp veavecms user@server:/srv/cms/veavecms
 ```
 
 ---

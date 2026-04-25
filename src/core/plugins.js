@@ -1,11 +1,15 @@
 // src/core/plugins.js
 import { registerTag } from "./tags.js";
+import { getDB } from "../db.js";
 import { join } from "path";
 import { readdirSync, existsSync } from "fs";
 
 const actionHooks = new Map();   // hook -> [fn, ...]
 const filterHooks = new Map();   // hook -> [fn, ...]
 const loadedPlugins = [];
+const contentTypes = [];         // registered via addContentType()
+
+export function getContentTypes() { return [...contentTypes]; }
 
 export async function loadPlugins() {
   const pluginsDir = join(process.cwd(), "plugins");
@@ -36,6 +40,14 @@ export async function loadPlugins() {
           if (!filterHooks.has(hook)) filterHooks.set(hook, []);
           filterHooks.get(hook).push(fn);
         },
+        addContentType: (def) => {
+          if (!def.slug || !def.table || !def.fields) {
+            console.warn(`Plugin "${entry.name}" addContentType() missing required fields (slug, table, fields)`);
+            return;
+          }
+          contentTypes.push(def);
+        },
+        getDB,
       });
 
       loadedPlugins.push(entry.name);

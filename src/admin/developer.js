@@ -14,7 +14,10 @@ export const componentTemplatesList = requireAuth(async (req, params, session) =
   const body = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
         <h2>Component Templates (Code)</h2>
-        <button onclick="document.getElementById('new_tpl_modal').style.display='flex'" class="btn btn-primary">+ Create New Template</button>
+        <div>
+            <a href="/admin/components/import" class="btn btn-secondary" style="margin-right:10px">📥 Import Theme ZIP</a>
+            <button onclick="document.getElementById('new_tpl_modal').style.display='flex'" class="btn btn-primary">+ Create New Template</button>
+        </div>
     </div>
     <p style="color:#666; margin-bottom:20px">Modify the Nunjucks and CSS code for your components. These define the "master" look for all instances.</p>
     

@@ -19,6 +19,11 @@ export function initTheme() {
   });
 
   // Global helpers
+  env.addGlobal("settings", new Proxy({}, {
+    get(target, prop) {
+      return getSetting(prop);
+    }
+  }));
   env.addGlobal("site_title", () => getSetting("site_title"));
   env.addGlobal("site_tagline", () => getSetting("site_tagline"));
   env.addGlobal("site_url", () => getSetting("site_url"));
@@ -45,12 +50,12 @@ export function initTheme() {
 // so async tag handlers (plugins, dynamic tags) can run.
 export async function renderComponents(pageId, { isAdmin = false, isEditing = false, session = null, ...ctx } = {}) {
   const db = getDB();
-  const components = db.prepare(`
+  const components = await db.all(`
     SELECT c.* FROM components c
     JOIN page_components pc ON c.id = pc.component_id
     WHERE pc.page_id = ?
     ORDER BY pc.sort_order ASC, c.id ASC
-  `).all(pageId);
+  `, [pageId]);
 
   let html = "";
   for (const comp of components) {

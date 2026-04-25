@@ -9,18 +9,19 @@ export function registerBuiltins() {
     const db = getDB();
     let posts;
     if (category) {
-      posts = db.prepare(`
+      posts = await db.all(`
         SELECT bp.title, bp.slug, bp.excerpt, bp.featured_image, bp.created_at
         FROM blog_posts bp
         JOIN blog_post_categories bpc ON bpc.post_id = bp.id
         JOIN blog_categories bc ON bc.id = bpc.category_id
         WHERE bp.status = 'published' AND bc.slug = ?
         ORDER BY bp.created_at DESC LIMIT ?
-      `).all(category, limit);
+      `, [category, Number(limit)]);
     } else {
-      posts = db.prepare(
-        "SELECT title, slug, excerpt, featured_image, created_at FROM blog_posts WHERE status='published' ORDER BY created_at DESC LIMIT ?"
-      ).all(limit);
+      posts = await db.all(
+        "SELECT title, slug, excerpt, featured_image, created_at FROM blog_posts WHERE status='published' ORDER BY created_at DESC LIMIT ?",
+        [Number(limit)]
+      );
     }
     if (!posts.length) return "";
     const items = posts.map(p => `
@@ -36,9 +37,9 @@ export function registerBuiltins() {
   // {% menu name="primary" %}
   registerTag("menu", async ({ name = "primary" } = {}) => {
     const db = getDB();
-    const pages = db.prepare(
+    const pages = await db.all(
       "SELECT title, slug FROM pages WHERE status='published' ORDER BY title"
-    ).all();
+    );
     if (!pages.length) return "";
     const items = pages.map(p =>
       `<li><a href="/${escAttr(p.slug)}">${escHtml(p.title)}</a></li>`
@@ -49,14 +50,14 @@ export function registerBuiltins() {
   // {% categories %}
   registerTag("categories", async () => {
     const db = getDB();
-    const cats = db.prepare(`
+    const cats = await db.all(`
       SELECT bc.name, bc.slug, COUNT(bpc.post_id) as count
       FROM blog_categories bc
       LEFT JOIN blog_post_categories bpc ON bpc.category_id = bc.id
       LEFT JOIN blog_posts bp ON bp.id = bpc.post_id AND bp.status = 'published'
       GROUP BY bc.id
       ORDER BY bc.name
-    `).all();
+    `);
     if (!cats.length) return "";
     const items = cats.map(c =>
       `<li><a href="/blog/category/${escAttr(c.slug)}">${escHtml(c.name)} <span>(${c.count})</span></a></li>`
@@ -87,7 +88,6 @@ export function registerBuiltins() {
 
   // {% if_plugin "name" %}...{% endif_plugin %} — block tag
   registerTag("if_plugin", async ({ name } = {}, body) => {
-    // Plugins not loaded yet — always returns empty for now
     return "";
   }, { block: true });
 
@@ -99,8 +99,8 @@ export function registerBuiltins() {
   // {% sitemap %}
   registerTag("sitemap", async () => {
     const db = getDB();
-    const pages = db.prepare("SELECT title, slug FROM pages WHERE status='published' ORDER BY title").all();
-    const posts = db.prepare("SELECT title, slug FROM blog_posts WHERE status='published' ORDER BY created_at DESC").all();
+    const pages = await db.all("SELECT title, slug FROM pages WHERE status='published' ORDER BY title");
+    const posts = await db.all("SELECT title, slug FROM blog_posts WHERE status='published' ORDER BY created_at DESC");
 
     const pageLinks = pages.map(p =>
       `<li><a href="/${escAttr(p.slug)}">${escHtml(p.title)}</a></li>`
@@ -137,7 +137,7 @@ export function registerBuiltins() {
     } else if (ctx?.page) {
       crumbs.push({ label: ctx.page.title, url: null });
     }
-    const items = crumbs.map((c, i) =>
+    const items = crumbs.map((c) =>
       c.url
         ? `<li><a href="${escAttr(c.url)}">${escHtml(c.label)}</a></li>`
         : `<li aria-current="page">${escHtml(c.label)}</li>`

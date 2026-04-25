@@ -6,7 +6,17 @@ export default {
   siteUrl: process.env.SITE_URL,
 
   db: {
+    // Auto-detect MySQL when DB_HOST + DB_USER + DB_NAME are all set; fall back to SQLite
+    driver: (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) ? "mysql" : (process.env.DB_DRIVER || "sqlite"),
+    // SQLite
     path: process.env.DB_PATH || "./data/cms.db",
+    // MySQL — just set DB_HOST, DB_USER, DB_NAME and DB_PASSWORD; no DB_DRIVER needed
+    host:            process.env.DB_HOST     || "localhost",
+    port:            parseInt(process.env.DB_PORT || "3306"),
+    database:        process.env.DB_NAME     || "buncms",
+    user:            process.env.DB_USER,
+    password:        process.env.DB_PASSWORD,
+    connectionLimit: parseInt(process.env.DB_POOL_SIZE || "10"),
   },
 
   security: {

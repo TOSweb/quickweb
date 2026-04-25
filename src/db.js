@@ -1,20 +1,35 @@
 // src/db.js
-import { Database } from "bun:sqlite";
 import config from "./config.js";
-import { join } from "path";
-import { mkdirSync } from "fs";
 
-let db;
+let adapter;
+const settingsCache = new Map();
+const isMysql = config.db?.driver === "mysql";
+
+// Adapt DDL: SQLite uses AUTOINCREMENT, MySQL uses AUTO_INCREMENT
+function ddl(sql) {
+  if (!isMysql) return sql;
+  return sql.replace(/\bAUTOINCREMENT\b/g, "AUTO_INCREMENT");
+}
 
 export async function initDB() {
-  const dbDir = join(process.cwd(), "data");
-  mkdirSync(dbDir, { recursive: true });
+  if (isMysql) {
+    const { createMySQLAdapter } = await import("./db/mysql.js");
+    adapter = createMySQLAdapter(config.db);
+  } else {
+    const { createSQLiteAdapter } = await import("./db/sqlite.js");
+    adapter = createSQLiteAdapter(config.db);
+  }
 
-  db = new Database(config.db.path);
-  db.run("PRAGMA foreign_keys = ON;");
+  await createTables();
+  await seedInitialData();
+  await seedPermissionsAndGroups();
+  await refreshSettingsCache();
 
-  // Auth Tables
-  db.run(`CREATE TABLE IF NOT EXISTS users (
+  console.log(`✓ Database initialized (${isMysql ? `MySQL:${config.db.database}` : `SQLite:${config.db.path}`})`);
+}
+
+async function createTables() {
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE,
@@ -23,22 +38,22 @@ export async function initDB() {
     is_superuser INTEGER DEFAULT 0,
     last_login DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS groups (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL,
     description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS user_groups (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS user_groups (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, group_id)
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS permissions (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS permissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     codename TEXT NOT NULL,
     name TEXT NOT NULL,
@@ -46,30 +61,29 @@ export async function initDB() {
     object_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(codename, object_type, object_id)
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS group_permissions (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS group_permissions (
     group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
     permission_id INTEGER REFERENCES permissions(id) ON DELETE CASCADE,
     PRIMARY KEY (group_id, permission_id)
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS user_permissions (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS user_permissions (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     permission_id INTEGER REFERENCES permissions(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, permission_id)
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS login_attempts (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS login_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ip TEXT NOT NULL,
     username TEXT,
     success INTEGER DEFAULT 0,
     attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );`);
+  )`));
 
-  // Page & Component Tables
-  db.run(`CREATE TABLE IF NOT EXISTS pages (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS pages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
@@ -81,9 +95,9 @@ export async function initDB() {
     updated_by INTEGER REFERENCES users(id),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS components (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS components (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     type TEXT NOT NULL,
@@ -95,26 +109,25 @@ export async function initDB() {
     updated_by INTEGER REFERENCES users(id),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS page_components (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS page_components (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     page_id INTEGER REFERENCES pages(id) ON DELETE CASCADE,
     component_id INTEGER REFERENCES components(id) ON DELETE RESTRICT,
     sort_order INTEGER DEFAULT 0,
     UNIQUE(page_id, component_id)
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS redirects (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS redirects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     from_url TEXT UNIQUE NOT NULL,
     to_url TEXT NOT NULL,
     status_code INTEGER DEFAULT 301,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );`);
+  )`));
 
-  // Blog Tables
-  db.run(`CREATE TABLE IF NOT EXISTS blog_posts (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS blog_posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
@@ -134,42 +147,41 @@ export async function initDB() {
     author_id INTEGER REFERENCES users(id),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS blog_categories (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS blog_categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
     description TEXT,
     meta_description TEXT
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS blog_tags (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS blog_tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS blog_post_categories (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS blog_post_categories (
     post_id INTEGER REFERENCES blog_posts(id) ON DELETE CASCADE,
     category_id INTEGER REFERENCES blog_categories(id) ON DELETE CASCADE,
     PRIMARY KEY (post_id, category_id)
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS blog_post_tags (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS blog_post_tags (
     post_id INTEGER REFERENCES blog_posts(id) ON DELETE CASCADE,
     tag_id INTEGER REFERENCES blog_tags(id) ON DELETE CASCADE,
     PRIMARY KEY (post_id, tag_id)
-  );`);
+  )`));
 
-  // Settings & Media
-  db.run(`CREATE TABLE IF NOT EXISTS settings (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS media (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS media (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     filename TEXT NOT NULL,
     original_name TEXT,
@@ -182,34 +194,36 @@ export async function initDB() {
     alt_text TEXT,
     uploaded_by INTEGER REFERENCES users(id),
     uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );`);
+  )`));
 
-  db.run(`CREATE TABLE IF NOT EXISTS sessions (
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     data TEXT,
     expires_at DATETIME NOT NULL
-  );`);
-
-  // Initial Settings
-  const seed = (key, value) => {
-    db.run("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", [key, value]);
-  };
-  seed("site_title", "My CMS Site");
-  seed("site_tagline", "Built with Bun");
-  seed("active_theme", "default");
-  seed("posts_per_page", "10");
-  seed("cms_version", "1.0.0");
-  seed("google_analytics_id", "");
-  seed("sitemap_include_pages", "1");
-  seed("sitemap_include_posts", "1");
-
-  seedPermissionsAndGroups(db);
-
-  console.log(`✓ Database initialized at ${config.db.path}`);
+  )`));
 }
 
-function seedPermissionsAndGroups(db) {
+async function seedInitialData() {
+  const defaults = [
+    ["site_title",            "Veave CMS Site"],
+    ["site_tagline",          "Built with Bun"],
+    ["active_theme",          "default"],
+    ["posts_per_page",        "10"],
+    ["cms_version",           "1.0.0"],
+    ["google_analytics_id",   ""],
+    ["sitemap_include_pages", "1"],
+    ["sitemap_include_posts", "1"],
+  ];
+  for (const [key, value] of defaults) {
+    await adapter.run(
+      "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
+      [key, value]
+    );
+  }
+}
+
+async function seedPermissionsAndGroups() {
   const TYPE_LEVEL_PERMISSIONS = [
     { codename: "view_page",        name: "Can view all pages",        object_type: "page" },
     { codename: "edit_page",        name: "Can edit all pages",        object_type: "page" },
@@ -225,63 +239,93 @@ function seedPermissionsAndGroups(db) {
     { codename: "manage_users",     name: "Can manage users/groups",   object_type: "user" },
   ];
 
-  // SQLite NULL != NULL in UNIQUE constraints, so INSERT OR IGNORE won't deduplicate
-  // type-level permissions (object_id IS NULL). Use existence check instead.
-  const insertPerm = db.prepare(
-    `INSERT INTO permissions (codename, name, object_type, object_id)
-     SELECT ?, ?, ?, NULL
-     WHERE NOT EXISTS (
-       SELECT 1 FROM permissions WHERE codename = ? AND object_type = ? AND object_id IS NULL
-     )`
-  );
+  // EXISTS-check insert — works identically in SQLite and MySQL (NULL != NULL in UNIQUE)
   for (const p of TYPE_LEVEL_PERMISSIONS) {
-    insertPerm.run(p.codename, p.name, p.object_type, p.codename, p.object_type);
+    await adapter.run(
+      `INSERT INTO permissions (codename, name, object_type, object_id)
+       SELECT ?, ?, ?, NULL
+       WHERE NOT EXISTS (
+         SELECT 1 FROM permissions WHERE codename = ? AND object_type = ? AND object_id IS NULL
+       )`,
+      [p.codename, p.name, p.object_type, p.codename, p.object_type]
+    );
   }
 
-  // Deduplicate any already-existing duplicates from prior runs
-  db.run(`
-    DELETE FROM permissions
-    WHERE id NOT IN (
-      SELECT MIN(id) FROM permissions
-      GROUP BY codename, object_type, COALESCE(CAST(object_id AS TEXT), '__null__')
-    )
-  `);
+  // Dedup any duplicates from prior runs — MySQL needs a derived table to self-reference
+  if (isMysql) {
+    await adapter.run(`
+      DELETE FROM permissions WHERE id NOT IN (
+        SELECT min_id FROM (
+          SELECT MIN(id) AS min_id FROM permissions
+          GROUP BY codename, object_type, IFNULL(object_id, -1)
+        ) AS tmp
+      )
+    `);
+  } else {
+    await adapter.run(`
+      DELETE FROM permissions WHERE id NOT IN (
+        SELECT MIN(id) FROM permissions
+        GROUP BY codename, object_type, IFNULL(object_id, -1)
+      )
+    `);
+  }
 
-  // Default groups
   const groups = [
     { name: "Administrators", description: "Full access to all CMS features" },
     { name: "Editors",        description: "Can edit pages, blog posts, and upload media" },
     { name: "Authors",        description: "Can write and publish their own blog posts" },
   ];
-  const insertGroup = db.prepare("INSERT OR IGNORE INTO groups (name, description) VALUES (?, ?)");
-  for (const g of groups) insertGroup.run(g.name, g.description);
-
-  // Assign permissions to groups — idempotent via INSERT OR IGNORE
-  const assignPerms = (groupName, codenames) => {
-    const group = db.prepare("SELECT id FROM groups WHERE name = ?").get(groupName);
-    if (!group) return;
-    const insertGP = db.prepare(
-      `INSERT OR IGNORE INTO group_permissions (group_id, permission_id)
-       SELECT ?, id FROM permissions WHERE codename = ? AND object_id IS NULL`
+  for (const g of groups) {
+    await adapter.run(
+      "INSERT OR IGNORE INTO groups (name, description) VALUES (?, ?)",
+      [g.name, g.description]
     );
-    for (const codename of codenames) insertGP.run(group.id, codename);
+  }
+
+  const assignPerms = async (groupName, codenames) => {
+    const group = await adapter.get("SELECT id FROM groups WHERE name = ?", [groupName]);
+    if (!group) return;
+    for (const codename of codenames) {
+      await adapter.run(
+        `INSERT OR IGNORE INTO group_permissions (group_id, permission_id)
+         SELECT ?, id FROM permissions WHERE codename = ? AND object_id IS NULL`,
+        [group.id, codename]
+      );
+    }
   };
 
-  assignPerms("Administrators", TYPE_LEVEL_PERMISSIONS.map(p => p.codename));
-  assignPerms("Editors", [
+  await assignPerms("Administrators", TYPE_LEVEL_PERMISSIONS.map(p => p.codename));
+  await assignPerms("Editors", [
     "view_page", "edit_page",
     "view_blogpost", "edit_blogpost", "publish_blogpost",
     "upload_media",
   ]);
-  assignPerms("Authors", ["edit_blogpost", "upload_media"]);
+  await assignPerms("Authors", ["edit_blogpost", "upload_media"]);
+}
+
+async function refreshSettingsCache() {
+  const rows = await adapter.all("SELECT key, value FROM settings");
+  settingsCache.clear();
+  for (const row of rows) settingsCache.set(row.key, row.value);
 }
 
 export function getDB() {
-  if (!db) throw new Error("DB not initialized. Call initDB() first.");
-  return db;
+  if (!adapter) throw new Error("DB not initialized. Call initDB() first.");
+  return adapter;
 }
 
+// Synchronous — reads from in-memory cache populated at startup.
+// Nunjucks globals and other sync callers rely on this staying synchronous.
 export function getSetting(key) {
-  const row = getDB().prepare("SELECT value FROM settings WHERE key = ?").get(key);
-  return row ? row.value : null;
+  return settingsCache.get(key) ?? null;
+}
+
+// Write a setting to the DB and update the in-memory cache.
+export async function setSetting(key, value) {
+  const v = value ?? "";
+  await adapter.run(
+    "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+    [key, v]
+  );
+  settingsCache.set(key, v);
 }

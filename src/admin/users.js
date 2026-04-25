@@ -9,7 +9,8 @@ import { hashPassword } from "../core/auth.js";
 
 export const usersList = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const users = db.prepare(`
+  // GROUP_CONCAT syntax is normalized by the MySQL adapter: GROUP_CONCAT(x, 'sep') → GROUP_CONCAT(x SEPARATOR 'sep')
+  const users = await db.all(`
     SELECT u.id, u.username, u.email, u.is_active, u.is_superuser, u.last_login, u.created_at,
            GROUP_CONCAT(g.name, ', ') as groups
     FROM users u
@@ -17,7 +18,7 @@ export const usersList = requireAuth(async (req, params, session) => {
     LEFT JOIN groups g ON g.id = ug.group_id
     GROUP BY u.id
     ORDER BY u.created_at DESC
-  `).all();
+  `);
 
   const csrfToken = generateCsrfToken(session.id);
 
@@ -56,7 +57,7 @@ export const usersList = requireAuth(async (req, params, session) => {
 
 export const newUserPage = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const groups = db.prepare("SELECT id, name FROM groups ORDER BY name").all();
+  const groups = await db.all("SELECT id, name FROM groups ORDER BY name");
   const csrfToken = generateCsrfToken(session.id);
 
   const groupCheckboxes = groups.map(g => `
@@ -108,14 +109,17 @@ export const handleNewUser = requireAuth(csrfProtect(async (req, params, session
   const db = getDB();
   const hash = await hashPassword(password);
 
-  const result = db.prepare(
-    "INSERT INTO users (username, email, password_hash, is_superuser) VALUES (?, ?, ?, ?)"
-  ).run(username, email, hash, isSuperuser);
-
+  const result = await db.run(
+    "INSERT INTO users (username, email, password_hash, is_superuser) VALUES (?, ?, ?, ?)",
+    [username, email, hash, isSuperuser]
+  );
   const userId = result.lastInsertRowid;
 
   for (const gid of groupIds) {
-    db.prepare("INSERT OR IGNORE INTO user_groups (user_id, group_id) VALUES (?, ?)").run(userId, gid);
+    await db.run(
+      "INSERT OR IGNORE INTO user_groups (user_id, group_id) VALUES (?, ?)",
+      [userId, gid]
+    );
   }
 
   return Response.redirect("/admin/users", 302);
@@ -123,12 +127,12 @@ export const handleNewUser = requireAuth(csrfProtect(async (req, params, session
 
 export const editUserPage = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(params.id);
+  const user = await db.get("SELECT * FROM users WHERE id = ?", [params.id]);
   if (!user) return new Response("User not found", { status: 404 });
 
-  const allGroups = db.prepare("SELECT id, name FROM groups ORDER BY name").all();
-  const userGroupIds = db.prepare("SELECT group_id FROM user_groups WHERE user_id = ?")
-    .all(params.id).map(r => r.group_id);
+  const allGroups = await db.all("SELECT id, name FROM groups ORDER BY name");
+  const userGroupRows = await db.all("SELECT group_id FROM user_groups WHERE user_id = ?", [params.id]);
+  const userGroupIds = userGroupRows.map(r => r.group_id);
 
   const csrfToken = generateCsrfToken(session.id);
 
@@ -171,7 +175,7 @@ export const editUserPage = requireAuth(async (req, params, session) => {
 
 export const handleEditUser = requireAuth(csrfProtect(async (req, params, session) => {
   const db = getDB();
-  const user = db.prepare("SELECT id FROM users WHERE id = ?").get(params.id);
+  const user = await db.get("SELECT id FROM users WHERE id = ?", [params.id]);
   if (!user) return new Response("User not found", { status: 404 });
 
   const form = req._form;
@@ -184,16 +188,20 @@ export const handleEditUser = requireAuth(csrfProtect(async (req, params, sessio
 
   if (password) {
     const hash = await hashPassword(password);
-    db.prepare("UPDATE users SET username=?, email=?, password_hash=?, is_active=?, is_superuser=? WHERE id=?")
-      .run(username, email, hash, isActive, isSuperuser, params.id);
+    await db.run(
+      "UPDATE users SET username=?, email=?, password_hash=?, is_active=?, is_superuser=? WHERE id=?",
+      [username, email, hash, isActive, isSuperuser, params.id]
+    );
   } else {
-    db.prepare("UPDATE users SET username=?, email=?, is_active=?, is_superuser=? WHERE id=?")
-      .run(username, email, isActive, isSuperuser, params.id);
+    await db.run(
+      "UPDATE users SET username=?, email=?, is_active=?, is_superuser=? WHERE id=?",
+      [username, email, isActive, isSuperuser, params.id]
+    );
   }
 
-  db.prepare("DELETE FROM user_groups WHERE user_id = ?").run(params.id);
+  await db.run("DELETE FROM user_groups WHERE user_id = ?", [params.id]);
   for (const gid of groupIds) {
-    db.prepare("INSERT OR IGNORE INTO user_groups (user_id, group_id) VALUES (?, ?)").run(params.id, gid);
+    await db.run("INSERT OR IGNORE INTO user_groups (user_id, group_id) VALUES (?, ?)", [params.id, gid]);
   }
 
   return Response.redirect("/admin/users", 302);
@@ -203,7 +211,7 @@ export const handleEditUser = requireAuth(csrfProtect(async (req, params, sessio
 
 export const groupsList = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const groups = db.prepare(`
+  const groups = await db.all(`
     SELECT g.id, g.name, g.description,
            COUNT(DISTINCT ug.user_id) as user_count,
            COUNT(DISTINCT gp.permission_id) as perm_count
@@ -212,7 +220,7 @@ export const groupsList = requireAuth(async (req, params, session) => {
     LEFT JOIN group_permissions gp ON gp.group_id = g.id
     GROUP BY g.id
     ORDER BY g.name
-  `).all();
+  `);
 
   const csrfToken = generateCsrfToken(session.id);
 
@@ -270,24 +278,25 @@ export const handleNewGroup = requireAuth(csrfProtect(async (req, params, sessio
   const description = form.get("description")?.trim() || null;
   if (!name) return new Response("Group name required", { status: 400 });
 
-  getDB().prepare("INSERT INTO groups (name, description) VALUES (?, ?)").run(name, description);
+  await getDB().run("INSERT INTO groups (name, description) VALUES (?, ?)", [name, description]);
   return Response.redirect("/admin/groups", 302);
 }));
 
 export const editGroupPage = requireAuth(async (req, params, session) => {
   const db = getDB();
-  const group = db.prepare("SELECT * FROM groups WHERE id = ?").get(params.id);
+  const group = await db.get("SELECT * FROM groups WHERE id = ?", [params.id]);
   if (!group) return new Response("Group not found", { status: 404 });
 
-  const allPerms = db.prepare(
+  const allPerms = await db.all(
     "SELECT * FROM permissions WHERE object_id IS NULL ORDER BY object_type, codename"
-  ).all();
-  const groupPermIds = db.prepare("SELECT permission_id FROM group_permissions WHERE group_id = ?")
-    .all(params.id).map(r => r.permission_id);
+  );
+  const groupPermRows = await db.all(
+    "SELECT permission_id FROM group_permissions WHERE group_id = ?", [params.id]
+  );
+  const groupPermIds = groupPermRows.map(r => r.permission_id);
 
   const csrfToken = generateCsrfToken(session.id);
 
-  // Group permissions by object_type
   const byType = {};
   for (const p of allPerms) {
     if (!byType[p.object_type]) byType[p.object_type] = [];
@@ -330,7 +339,7 @@ export const editGroupPage = requireAuth(async (req, params, session) => {
 
 export const handleEditGroup = requireAuth(csrfProtect(async (req, params, session) => {
   const db = getDB();
-  const group = db.prepare("SELECT id FROM groups WHERE id = ?").get(params.id);
+  const group = await db.get("SELECT id FROM groups WHERE id = ?", [params.id]);
   if (!group) return new Response("Group not found", { status: 404 });
 
   const form = req._form;
@@ -338,10 +347,10 @@ export const handleEditGroup = requireAuth(csrfProtect(async (req, params, sessi
   const description = form.get("description")?.trim() || null;
   const permIds = form.getAll("permissions");
 
-  db.prepare("UPDATE groups SET name=?, description=? WHERE id=?").run(name, description, params.id);
-  db.prepare("DELETE FROM group_permissions WHERE group_id=?").run(params.id);
+  await db.run("UPDATE groups SET name=?, description=? WHERE id=?", [name, description, params.id]);
+  await db.run("DELETE FROM group_permissions WHERE group_id=?", [params.id]);
   for (const pid of permIds) {
-    db.prepare("INSERT OR IGNORE INTO group_permissions (group_id, permission_id) VALUES (?, ?)").run(params.id, pid);
+    await db.run("INSERT OR IGNORE INTO group_permissions (group_id, permission_id) VALUES (?, ?)", [params.id, pid]);
   }
 
   return Response.redirect("/admin/groups", 302);
