@@ -1,0 +1,14 @@
+<div class="cms-component cms-dynamic cms-post-loop" data-id="{{ id }}">
+    {% set config = config | json_parse %}
+    {% if config.title %}<h3>{{ config.title }}</h3>{% endif %}
+    <div class="post-grid">
+        {% for post in data %}
+            <article class="post-card">
+                <h4><a href="/post/{{ post.slug }}">{{ post.title }}</a></h4>
+                <p>{{ post.excerpt or (post.content | truncate(100)) }}</p>
+            </article>
+        {% else %}
+            <p>No content found for tags: {{ config.tags }}</p>
+        {% endfor %}
+    </div>
+</div>

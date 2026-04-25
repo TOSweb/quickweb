@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ site_title() }}</title>
+  <meta name="description" content="{{ site_tagline() }}">
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="site-title">{{ site_title() }}</a>
+      <p class="site-tagline">{{ site_tagline() }}</p>
+    </div>
+  </header>
+  <main class="container">
+    {% if posts.length %}
+      <div class="post-list">
+        {% for post in posts %}
+          <article class="post-card">
+            <h2><a href="/post/{{ post.slug }}">{{ post.title }}</a></h2>
+            <div class="post-meta">{{ post.created_at | date }}</div>
+            <p>{{ post.excerpt or (post.content | truncate(200)) }}</p>
+            <a href="/post/{{ post.slug }}" class="read-more">Read more →</a>
+          </article>
+        {% endfor %}
+      </div>
+      {% if total_pages > 1 %}
+        <nav class="pagination">
+          {% if page > 1 %}<a href="/?page={{ page - 1 }}">← Prev</a>{% endif %}
+          <span>Page {{ page }} of {{ total_pages }}</span>
+          {% if page < total_pages %}<a href="/?page={{ page + 1 }}">Next →</a>{% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <p class="empty">No posts yet. <a href="/admin">Go to admin</a> to create one.</p>
+    {% endif %}
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <p>© {{ year() }} {{ site_title() }} · Powered by MyCMS</p>
+    </div>
+  </footer>
+</body>
+</html>

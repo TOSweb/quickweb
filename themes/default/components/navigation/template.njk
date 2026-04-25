@@ -1,0 +1,956 @@
+<style>
+[data-section="nav-heritage"] {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+/* ── Top Bar ─────────────────────────── */
+
+[data-section="nav-heritage"] .nav-topbar {
+  background-color: var(--color-bg-inverse, #111111);
+  border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.10));
+}
+
+[data-section="nav-heritage"] .nav-topbar .container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--space-32, 32px);
+}
+
+[data-section="nav-heritage"] .topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16, 16px);
+  min-height: 44px;
+  padding: var(--space-8, 8px) 0;
+}
+
+[data-section="nav-heritage"] .topbar-tagline {
+  font-size: 0.8125rem;
+  color: var(--color-text-on-dark, #c8c8c4);
+  letter-spacing: 0.01em;
+  margin: 0;
+  line-height: 1;
+}
+
+[data-section="nav-heritage"] .topbar-contact {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+[data-section="nav-heritage"] .topbar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8, 8px);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-on-dark, #e8e8e4);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  padding: 0 var(--space-24, 24px);
+  min-height: 44px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition, 0.25s ease);
+  line-height: 1;
+}
+
+[data-section="nav-heritage"] .topbar-item:hover {
+  color: var(--color-primary, #E8601E);
+}
+
+[data-section="nav-heritage"] .topbar-icon {
+  display: flex;
+  align-items: center;
+  color: var(--color-primary, #E8601E);
+  flex-shrink: 0;
+}
+
+[data-section="nav-heritage"] .topbar-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-border, rgba(255,255,255,0.15));
+  flex-shrink: 0;
+}
+
+[data-section="nav-heritage"] .lang-flag {
+  display: flex;
+  align-items: center;
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+[data-section="nav-heritage"] .lang-chevron {
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+}
+
+/* ── Main Bar ────────────────────────── */
+
+[data-section="nav-heritage"] .nav-mainbar {
+  background-color: var(--color-bg-primary, #f5f5f3);
+  border-bottom: 1px solid var(--color-border-light, rgba(0,0,0,0.08));
+}
+
+[data-section="nav-heritage"] .nav-mainbar .container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--space-32, 32px);
+}
+
+[data-section="nav-heritage"] .mainbar-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-32, 32px);
+  min-height: 72px;
+}
+
+/* ── Logo ───────────────────────────── */
+
+[data-section="nav-heritage"] .nav-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8, 8px);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+[data-section="nav-heritage"] .logo-mark {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+[data-section="nav-heritage"] .logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+[data-section="nav-heritage"] .logo-name {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--color-text-primary, #1a1a1a);
+  line-height: 1;
+}
+
+[data-section="nav-heritage"] .logo-sub {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted, #888888);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* ── Desktop Nav List ───────────────── */
+
+[data-section="nav-heritage"] .nav-links {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+[data-section="nav-heritage"] .nav-list {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-8, 8px);
+}
+
+[data-section="nav-heritage"] .nav-item {
+  position: relative;
+}
+
+[data-section="nav-heritage"] .nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-primary, #1a1a1a);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-8, 8px) var(--space-16, 16px);
+  min-height: 44px;
+  border-radius: 2px;
+  transition: color var(--transition, 0.25s ease), background-color var(--transition, 0.25s ease);
+  position: relative;
+  white-space: nowrap;
+}
+
+[data-section="nav-heritage"] .nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: var(--space-16, 16px);
+  right: var(--space-16, 16px);
+  height: 2px;
+  background: var(--color-primary, #E8601E);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--transition, 0.25s ease);
+  border-radius: 1px;
+}
+
+[data-section="nav-heritage"] .nav-item:hover .nav-link,
+[data-section="nav-heritage"] .nav-item:focus-within .nav-link {
+  color: var(--color-primary, #E8601E);
+  background-color: rgba(0,0,0,0.03);
+}
+
+[data-section="nav-heritage"] .nav-item:hover .nav-link::after,
+[data-section="nav-heritage"] .nav-item:focus-within .nav-link::after {
+  transform: scaleX(1);
+}
+
+[data-section="nav-heritage"] .nav-plus {
+  font-size: 0.875rem;
+  font-weight: 400;
+  opacity: 0.5;
+  transition: opacity var(--transition, 0.25s ease), transform var(--transition, 0.25s ease);
+  display: inline-block;
+}
+
+[data-section="nav-heritage"] .nav-item:hover .nav-plus,
+[data-section="nav-heritage"] .nav-item:focus-within .nav-plus {
+  opacity: 1;
+  transform: rotate(45deg);
+}
+
+/* ── Desktop Dropdown ───────────────── */
+
+[data-section="nav-heritage"] .dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  min-width: 200px;
+  background-color: var(--color-bg-surface, #ffffff);
+  border-top: 3px solid var(--color-primary, #E8601E);
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--transition, 0.25s ease),
+    transform var(--transition, 0.25s ease),
+    visibility 0s linear var(--transition, 0.25s);
+}
+
+[data-section="nav-heritage"] .dropdown::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 8px solid var(--color-primary, #E8601E);
+}
+
+[data-section="nav-heritage"] .nav-item:hover .dropdown,
+[data-section="nav-heritage"] .nav-item:focus-within .dropdown {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+  transition:
+    opacity var(--transition, 0.25s ease),
+    transform var(--transition, 0.25s ease),
+    visibility 0s linear 0s;
+}
+
+[data-section="nav-heritage"] .dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-8, 8px) 0;
+}
+
+[data-section="nav-heritage"] .dropdown-link {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-text-primary, #1a1a1a);
+  text-decoration: none;
+  padding: 10px var(--space-24, 24px);
+  white-space: nowrap;
+  border-left: 3px solid transparent;
+  transition:
+    color var(--transition, 0.25s ease),
+    background-color var(--transition, 0.25s ease),
+    padding-left var(--transition, 0.25s ease),
+    border-left-color var(--transition, 0.25s ease);
+}
+
+[data-section="nav-heritage"] .dropdown-link:hover {
+  color: var(--color-primary, #E8601E);
+  background-color: rgba(232,96,30,0.05);
+  padding-left: calc(var(--space-24, 24px) + 4px);
+  border-left-color: var(--color-primary, #E8601E);
+}
+
+/* ── Right Actions ──────────────────── */
+
+[data-section="nav-heritage"] .nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8, 8px);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+[data-section="nav-heritage"] .btn-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8, 8px);
+  background-color: var(--color-primary, #E8601E);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 0 var(--space-24, 24px);
+  min-height: 48px;
+  border-radius: 2px;
+  border: 2px solid var(--color-primary, #E8601E);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--transition, 0.25s ease), color var(--transition, 0.25s ease);
+}
+
+[data-section="nav-heritage"] .btn-cta:hover {
+  background-color: transparent;
+  color: var(--color-primary, #E8601E);
+}
+
+[data-section="nav-heritage"] .btn-cta-arrows {
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: 900;
+}
+
+[data-section="nav-heritage"] .nav-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-primary, #1a1a1a);
+  border-radius: 2px;
+  transition: color var(--transition, 0.25s ease), background-color var(--transition, 0.25s ease);
+  flex-shrink: 0;
+}
+
+[data-section="nav-heritage"] .nav-icon-btn:hover {
+  color: var(--color-primary, #E8601E);
+  background-color: rgba(0,0,0,0.05);
+}
+
+/* ── Hamburger ──────────────────────── */
+
+[data-section="nav-heritage"] .nav-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-8, 8px);
+  border-radius: 2px;
+}
+
+[data-section="nav-heritage"] .nav-hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--color-text-primary, #1a1a1a);
+  border-radius: 1px;
+  transition: transform var(--transition, 0.25s ease), opacity var(--transition, 0.25s ease);
+}
+
+[data-section="nav-heritage"] .nav-hamburger[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+[data-section="nav-heritage"] .nav-hamburger[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+[data-section="nav-heritage"] .nav-hamburger[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ── Mobile Drawer shell ────────────── */
+
+[data-section="nav-heritage"] .nav-mobile-drawer {
+  display: block;
+  background-color: var(--color-bg-primary, #f5f5f3);
+  border-top: 1px solid var(--color-border-light, rgba(0,0,0,0.08));
+  overflow: hidden;
+  max-height: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    max-height var(--transition-slow, 0.4s ease),
+    visibility 0s linear var(--transition-slow, 0.4s);
+}
+
+[data-section="nav-heritage"] .nav-mobile-drawer.is-open {
+  /* Large enough to fit all items fully expanded simultaneously */
+  max-height: 1200px;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    max-height 0.6s ease,
+    visibility 0s linear 0s;
+}
+
+[data-section="nav-heritage"] .nav-mobile-drawer nav {
+  padding: var(--space-8, 8px) 0 var(--space-24, 24px);
+}
+
+/* ── Mobile accordion list ──────────── */
+
+[data-section="nav-heritage"] .mob-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+[data-section="nav-heritage"] .mob-item {
+  border-bottom: 1px solid var(--color-border-light, rgba(0,0,0,0.08));
+}
+
+/* Accordion trigger row — full-width button */
+[data-section="nav-heritage"] .mob-accordion-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-16, 16px) var(--space-24, 24px);
+  min-height: 52px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-primary, #1a1a1a);
+  text-align: left;
+  transition: color var(--transition, 0.25s ease), background-color var(--transition, 0.25s ease);
+}
+
+[data-section="nav-heritage"] .mob-accordion-trigger:hover {
+  color: var(--color-primary, #E8601E);
+  background-color: rgba(232,96,30,0.04);
+}
+
+[data-section="nav-heritage"] .mob-item.is-open .mob-accordion-trigger {
+  color: var(--color-primary, #E8601E);
+  background-color: rgba(232,96,30,0.04);
+}
+
+/* Chevron rotates on open */
+[data-section="nav-heritage"] .mob-chevron {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: transform var(--transition, 0.25s ease);
+  color: var(--color-text-muted, #888888);
+}
+
+[data-section="nav-heritage"] .mob-item.is-open .mob-chevron {
+  transform: rotate(180deg);
+  color: var(--color-primary, #E8601E);
+}
+
+/* ── Accordion panel — same max-height trick ── */
+
+[data-section="nav-heritage"] .mob-accordion-panel {
+  overflow: hidden;
+  max-height: 0;
+  visibility: hidden;
+  transition:
+    max-height var(--transition-slow, 0.4s ease),
+    visibility 0s linear var(--transition-slow, 0.4s);
+}
+
+[data-section="nav-heritage"] .mob-item.is-open .mob-accordion-panel {
+  max-height: 400px;
+  visibility: visible;
+  transition:
+    max-height var(--transition-slow, 0.4s ease),
+    visibility 0s linear 0s;
+}
+
+/* Sub-link list — indented with left accent bar */
+[data-section="nav-heritage"] .mob-sub-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-8, 8px) 0;
+  background-color: rgba(0,0,0,0.02);
+  border-left: 3px solid var(--color-primary, #E8601E);
+  margin-left: var(--space-24, 24px);
+  margin-right: var(--space-24, 24px);
+  margin-bottom: var(--space-8, 8px);
+  border-radius: 0 2px 2px 0;
+}
+
+[data-section="nav-heritage"] .mob-sub-link {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted, #555555);
+  text-decoration: none;
+  padding: 10px var(--space-16, 16px);
+  transition: color var(--transition, 0.25s ease), background-color var(--transition, 0.25s ease);
+}
+
+[data-section="nav-heritage"] .mob-sub-link:hover {
+  color: var(--color-primary, #E8601E);
+  background-color: rgba(232,96,30,0.06);
+}
+
+/* Plain link (CONTACT — no sub-items) */
+[data-section="nav-heritage"] .mob-plain-link {
+  display: flex;
+  align-items: center;
+  padding: var(--space-16, 16px) var(--space-24, 24px);
+  min-height: 52px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-primary, #1a1a1a);
+  text-decoration: none;
+  transition: color var(--transition, 0.25s ease), background-color var(--transition, 0.25s ease);
+}
+
+[data-section="nav-heritage"] .mob-plain-link:hover {
+  color: var(--color-primary, #E8601E);
+  background-color: rgba(232,96,30,0.04);
+}
+
+/* CTA inside drawer */
+[data-section="nav-heritage"] .mobile-cta {
+  display: inline-flex;
+  margin: var(--space-16, 16px) var(--space-24, 24px) 0;
+}
+
+/* ── Responsive ─────────────────────── */
+
+@media (max-width: 1100px) {
+  [data-section="nav-heritage"] .nav-links       { display: none; }
+  [data-section="nav-heritage"] .btn-cta          { display: none; }
+  [data-section="nav-heritage"] .nav-icon-btn.nav-grid-btn { display: none; }
+  [data-section="nav-heritage"] .nav-hamburger    { display: flex; }
+  [data-section="nav-heritage"] .nav-topbar .container { display: none; }
+}
+
+@media (max-width: 640px) {
+  [data-section="nav-heritage"] .topbar-tagline  { display: none; }
+  [data-section="nav-heritage"] .topbar-inner    { justify-content: flex-end; }
+  [data-section="nav-heritage"] .topbar-item     { padding: 0 var(--space-16, 16px); font-size: 0.75rem; }
+  [data-section="nav-heritage"] .nav-mainbar .container { padding-left: var(--space-16, 16px); padding-right: var(--space-16, 16px); }
+  [data-section="nav-heritage"] .nav-topbar .container { display: none; }
+  [data-section="nav-heritage"] .mob-sub-list    { margin-left: var(--space-16, 16px); margin-right: var(--space-16, 16px); }
+  [data-section="nav-heritage"] .mob-accordion-trigger,
+  [data-section="nav-heritage"] .mob-plain-link  { padding-left: var(--space-16, 16px); padding-right: var(--space-16, 16px); }
+  [data-section="nav-heritage"] .mobile-cta      { margin-left: var(--space-16, 16px); }
+}
+</style>
+<section data-section="nav-heritage">
+
+  <!-- Top Bar -->
+  <div class="nav-topbar">
+    <div class="container">
+      <div class="topbar-inner">
+        <p class="topbar-tagline editable" data-field="tagline">{{ tagline | default('Leading construction firm & trusted development partner.') }}</p>
+        <div class="topbar-contact">
+          <a class="topbar-item" href="tel:+08400567899">
+            <span class="topbar-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </span>
+            <span class="editable" data-field="phone">{{ phone | default('+084 005–678 99') }}</span>
+          </a>
+          <div class="topbar-divider" aria-hidden="true"></div>
+          <a class="topbar-item" href="mailto:contact@heritage.com">
+            <span class="topbar-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </span>
+            <span class="editable" data-field="email">{{ email | default('contact@heritage.com') }}</span>
+          </a>
+          <div class="topbar-divider" aria-hidden="true"></div>
+          <button class="topbar-item topbar-lang" aria-label="Select language" aria-expanded="false">
+            <span class="lang-flag" aria-hidden="true">
+              <svg width="20" height="14" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+                <rect width="60" height="40" fill="#012169"/>
+                <path d="M0,0 L60,40 M60,0 L0,40" stroke="#fff" stroke-width="8"/>
+                <path d="M0,0 L60,40 M60,0 L0,40" stroke="#C8102E" stroke-width="5"/>
+                <path d="M30,0 V40 M0,20 H60" stroke="#fff" stroke-width="13"/>
+                <path d="M30,0 V40 M0,20 H60" stroke="#C8102E" stroke-width="8"/>
+              </svg>
+            </span>
+            English
+            <span class="lang-chevron" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Navigation Bar -->
+  <div class="nav-mainbar">
+    <div class="container">
+      <div class="mainbar-inner">
+
+        <!-- Logo -->
+        <a class="nav-logo" href="/" aria-label="Heritage Construction Firm - Home">
+          <span class="logo-mark" aria-hidden="true">
+            <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+              <rect width="36" height="36" rx="4" fill="var(--color-primary, #E8601E)"/>
+              <rect x="8" y="20" width="4" height="10" fill="#fff"/>
+              <rect x="14" y="14" width="4" height="16" fill="#fff"/>
+              <rect x="20" y="8" width="4" height="22" fill="#fff"/>
+              <rect x="7" y="30" width="22" height="2" fill="#fff"/>
+            </svg>
+          </span>
+          <span class="logo-text">
+            <span class="logo-name editable" data-field="company_name">{{ company_name | default('HERITAGE') }}</span>
+            <span class="logo-sub editable" data-field="company_subtitle">{{ company_subtitle | default('Construction Firm') }}</span>
+          </span>
+        </a>
+
+        <!-- Desktop Nav Links -->
+        <nav class="nav-links" aria-label="Primary navigation">
+          <ul class="nav-list" role="list">
+
+            <li class="nav-item has-dropdown">
+              <button class="nav-link" aria-expanded="false" aria-haspopup="true">
+                HOME <span class="nav-plus" aria-hidden="true">+</span>
+              </button>
+              <div class="dropdown" role="region" aria-label="Home submenu">
+                <ul class="dropdown-list" role="list">
+                  <li><a class="dropdown-link" href="/home/construction">Construction</a></li>
+                  <li><a class="dropdown-link" href="/home/architecture">Architecture</a></li>
+                  <li><a class="dropdown-link" href="/home/interior">Interior Design</a></li>
+                  <li><a class="dropdown-link" href="/home/renovation">Renovation</a></li>
+                </ul>
+              </div>
+            </li>
+
+            <li class="nav-item has-dropdown">
+              <button class="nav-link" aria-expanded="false" aria-haspopup="true">
+                PAGES <span class="nav-plus" aria-hidden="true">+</span>
+              </button>
+              <div class="dropdown" role="region" aria-label="Pages submenu">
+                <ul class="dropdown-list" role="list">
+                  <li><a class="dropdown-link" href="/about">About Us</a></li>
+                  <li><a class="dropdown-link" href="/team">Our Team</a></li>
+                  <li><a class="dropdown-link" href="/careers">Careers</a></li>
+                  <li><a class="dropdown-link" href="/faq">FAQ</a></li>
+                  <li><a class="dropdown-link" href="/testimonials">Testimonials</a></li>
+                </ul>
+              </div>
+            </li>
+
+            <li class="nav-item has-dropdown">
+              <button class="nav-link" aria-expanded="false" aria-haspopup="true">
+                SERVICES <span class="nav-plus" aria-hidden="true">+</span>
+              </button>
+              <div class="dropdown" role="region" aria-label="Services submenu">
+                <ul class="dropdown-list" role="list">
+                  <li><a class="dropdown-link" href="/services/general-contracting">General Contracting</a></li>
+                  <li><a class="dropdown-link" href="/services/project-management">Project Management</a></li>
+                  <li><a class="dropdown-link" href="/services/design-build">Design & Build</a></li>
+                  <li><a class="dropdown-link" href="/services/estimating">Cost Estimating</a></li>
+                  <li><a class="dropdown-link" href="/services/consulting">Consulting</a></li>
+                </ul>
+              </div>
+            </li>
+
+            <li class="nav-item has-dropdown">
+              <button class="nav-link" aria-expanded="false" aria-haspopup="true">
+                PROJECTS <span class="nav-plus" aria-hidden="true">+</span>
+              </button>
+              <div class="dropdown" role="region" aria-label="Projects submenu">
+                <ul class="dropdown-list" role="list">
+                  <li><a class="dropdown-link" href="/projects/residential">Residential</a></li>
+                  <li><a class="dropdown-link" href="/projects/commercial">Commercial</a></li>
+                  <li><a class="dropdown-link" href="/projects/industrial">Industrial</a></li>
+                  <li><a class="dropdown-link" href="/projects/infrastructure">Infrastructure</a></li>
+                </ul>
+              </div>
+            </li>
+
+            <li class="nav-item has-dropdown">
+              <button class="nav-link" aria-expanded="false" aria-haspopup="true">
+                BLOG <span class="nav-plus" aria-hidden="true">+</span>
+              </button>
+              <div class="dropdown" role="region" aria-label="Blog submenu">
+                <ul class="dropdown-list" role="list">
+                  <li><a class="dropdown-link" href="/blog/news">Industry News</a></li>
+                  <li><a class="dropdown-link" href="/blog/tips">Construction Tips</a></li>
+                  <li><a class="dropdown-link" href="/blog/case-studies">Case Studies</a></li>
+                </ul>
+              </div>
+            </li>
+
+            <li class="nav-item">
+              <a class="nav-link" href="/contact">CONTACT</a>
+            </li>
+
+          </ul>
+        </nav>
+
+        <!-- Right Actions -->
+        <div class="nav-actions">
+          <a class="btn-cta" href="/consultation" aria-label="Get a consultation">
+            <span class="btn-cta-arrows" aria-hidden="true">»</span>
+            <span class="editable" data-field="cta_text">{{ cta_text | default('GET A CONSULTATION') }}</span>
+          </a>
+          <button class="nav-icon-btn" aria-label="Search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button class="nav-icon-btn nav-grid-btn" aria-label="Open menu grid">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+          </button>
+          <button class="nav-hamburger" aria-label="Toggle mobile menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────────────────
+       MOBILE DRAWER
+       Each item with sub-links is a .mob-accordion.
+       Tapping .mob-accordion-trigger toggles .is-open on the parent li,
+       which expands .mob-accordion-panel via max-height animation.
+       Items without sub-links are plain .mob-plain-link rows.
+  ───────────────────────────────────────────────────────────────────────── -->
+  <div class="nav-mobile-drawer" aria-hidden="true">
+    <nav aria-label="Mobile navigation">
+      <ul class="mob-list" role="list">
+
+        <!-- HOME accordion -->
+        <li class="mob-item mob-has-sub">
+          <button class="mob-accordion-trigger" aria-expanded="false">
+            <span class="mob-label">HOME</span>
+            <span class="mob-chevron" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </button>
+          <div class="mob-accordion-panel">
+            <ul class="mob-sub-list" role="list">
+              <li><a class="mob-sub-link" href="/home/construction">Construction</a></li>
+              <li><a class="mob-sub-link" href="/home/architecture">Architecture</a></li>
+              <li><a class="mob-sub-link" href="/home/interior">Interior Design</a></li>
+              <li><a class="mob-sub-link" href="/home/renovation">Renovation</a></li>
+            </ul>
+          </div>
+        </li>
+
+        <!-- PAGES accordion -->
+        <li class="mob-item mob-has-sub">
+          <button class="mob-accordion-trigger" aria-expanded="false">
+            <span class="mob-label">PAGES</span>
+            <span class="mob-chevron" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </button>
+          <div class="mob-accordion-panel">
+            <ul class="mob-sub-list" role="list">
+              <li><a class="mob-sub-link" href="/about">About Us</a></li>
+              <li><a class="mob-sub-link" href="/team">Our Team</a></li>
+              <li><a class="mob-sub-link" href="/careers">Careers</a></li>
+              <li><a class="mob-sub-link" href="/faq">FAQ</a></li>
+              <li><a class="mob-sub-link" href="/testimonials">Testimonials</a></li>
+            </ul>
+          </div>
+        </li>
+
+        <!-- SERVICES accordion -->
+        <li class="mob-item mob-has-sub">
+          <button class="mob-accordion-trigger" aria-expanded="false">
+            <span class="mob-label">SERVICES</span>
+            <span class="mob-chevron" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </button>
+          <div class="mob-accordion-panel">
+            <ul class="mob-sub-list" role="list">
+              <li><a class="mob-sub-link" href="/services/general-contracting">General Contracting</a></li>
+              <li><a class="mob-sub-link" href="/services/project-management">Project Management</a></li>
+              <li><a class="mob-sub-link" href="/services/design-build">Design & Build</a></li>
+              <li><a class="mob-sub-link" href="/services/estimating">Cost Estimating</a></li>
+              <li><a class="mob-sub-link" href="/services/consulting">Consulting</a></li>
+            </ul>
+          </div>
+        </li>
+
+        <!-- PROJECTS accordion -->
+        <li class="mob-item mob-has-sub">
+          <button class="mob-accordion-trigger" aria-expanded="false">
+            <span class="mob-label">PROJECTS</span>
+            <span class="mob-chevron" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </button>
+          <div class="mob-accordion-panel">
+            <ul class="mob-sub-list" role="list">
+              <li><a class="mob-sub-link" href="/projects/residential">Residential</a></li>
+              <li><a class="mob-sub-link" href="/projects/commercial">Commercial</a></li>
+              <li><a class="mob-sub-link" href="/projects/industrial">Industrial</a></li>
+              <li><a class="mob-sub-link" href="/projects/infrastructure">Infrastructure</a></li>
+            </ul>
+          </div>
+        </li>
+
+        <!-- BLOG accordion -->
+        <li class="mob-item mob-has-sub">
+          <button class="mob-accordion-trigger" aria-expanded="false">
+            <span class="mob-label">BLOG</span>
+            <span class="mob-chevron" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </button>
+          <div class="mob-accordion-panel">
+            <ul class="mob-sub-list" role="list">
+              <li><a class="mob-sub-link" href="/blog/news">Industry News</a></li>
+              <li><a class="mob-sub-link" href="/blog/tips">Construction Tips</a></li>
+              <li><a class="mob-sub-link" href="/blog/case-studies">Case Studies</a></li>
+            </ul>
+          </div>
+        </li>
+
+        <!-- CONTACT plain link -->
+        <li class="mob-item">
+          <a class="mob-plain-link" href="/contact">CONTACT</a>
+        </li>
+
+      </ul>
+
+      <a class="btn-cta mobile-cta" href="/consultation">» GET A CONSULTATION</a>
+    </nav>
+  </div>
+
+</section>
+
+
+<script>
+(function () {
+  const section = document.querySelector('[data-section="nav-heritage"]');
+  if (!section) return;
+
+  /* ── Main drawer toggle (hamburger) ── */
+  const hamburger = section.querySelector('.nav-hamburger');
+  const drawer    = section.querySelector('.nav-mobile-drawer');
+
+  if (hamburger && drawer) {
+    hamburger.addEventListener('click', function () {
+      const isOpen = this.getAttribute('aria-expanded') === 'true';
+      this.setAttribute('aria-expanded', String(!isOpen));
+      drawer.setAttribute('aria-hidden', String(isOpen));
+      drawer.classList.toggle('is-open', !isOpen);
+    });
+  }
+
+  /* ── Mobile accordion items ──────────────────────────────────────────
+     Each .mob-accordion-trigger toggles .is-open on its parent .mob-item.
+     Closing other open items on each open gives an accordion (one-open)
+     feel, but you can remove that block to allow multiple open at once.
+  ─────────────────────────────────────────────────────────────────────── */
+  section.querySelectorAll('.mob-accordion-trigger').forEach(function (trigger) {
+    trigger.addEventListener('click', function () {
+      const item   = this.closest('.mob-item');
+      const isOpen = item.classList.contains('is-open');
+
+      /* Close all other open accordion items */
+      section.querySelectorAll('.mob-item.is-open').forEach(function (openItem) {
+        if (openItem !== item) {
+          openItem.classList.remove('is-open');
+          openItem.querySelector('.mob-accordion-trigger').setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      /* Toggle clicked item */
+      item.classList.toggle('is-open', !isOpen);
+      this.setAttribute('aria-expanded', String(!isOpen));
+    });
+  });
+
+  /* ── Close drawer on outside click ── */
+  document.addEventListener('click', function (e) {
+    if (!section.contains(e.target) && drawer && drawer.classList.contains('is-open')) {
+      drawer.classList.remove('is-open');
+      drawer.setAttribute('aria-hidden', 'true');
+      if (hamburger) hamburger.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  /* ── Desktop dropdown: sync aria-expanded for screen readers ── */
+  section.querySelectorAll('.nav-item.has-dropdown').forEach(function (item) {
+    const trigger = item.querySelector('.nav-link');
+    if (!trigger) return;
+    item.addEventListener('mouseenter', function () { trigger.setAttribute('aria-expanded', 'true'); });
+    item.addEventListener('mouseleave', function () { trigger.setAttribute('aria-expanded', 'false'); });
+    item.addEventListener('focusin',    function () { trigger.setAttribute('aria-expanded', 'true'); });
+    item.addEventListener('focusout',   function (e) {
+      if (!item.contains(e.relatedTarget)) trigger.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  /* ── Sticky shadow ── */
+  new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      section.style.boxShadow = entry.isIntersecting
+        ? '0 2px 12px rgba(0,0,0,0.08)'
+        : '0 4px 24px rgba(0,0,0,0.16)';
+    });
+  }, { threshold: 1, rootMargin: '-1px 0px 0px 0px' }).observe(section);
+
+  /* ── Escape key closes drawer ── */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && drawer && drawer.classList.contains('is-open')) {
+      drawer.classList.remove('is-open');
+      drawer.setAttribute('aria-hidden', 'true');
+      if (hamburger) { hamburger.setAttribute('aria-expanded', 'false'); hamburger.focus(); }
+    }
+  });
+
+})();
+</script>

@@ -1,0 +1,9 @@
+<section class="cms-component hero-banner" data-id="{{ id }}" style="padding: 60px 20px; background: #1a1a1a; color: #fff; text-align: center; border-radius: 12px; margin-bottom: 32px; border: 1px solid #333;">
+    <h1 class="edit-textfield" data-field="title" style="font-size: 42px; margin-bottom: 16px;">{{ content.title or "Hero Title" }}</h1>
+    <p class="edit-textfield" data-field="subtitle" style="font-size: 18px; color: #aaa; margin-bottom: 32px;">{{ content.subtitle or "This is a modular hero component. Edit me inline!" }}</p>
+    <div style="display: flex; justify-content: center; gap: 16px;">
+        <a href="{{ content.button_url or '#' }}" class="edit-link" data-field="button_url" style="display: inline-block; padding: 12px 24px; background: #4f8ef7; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600;">
+            <span class="edit-textfield" data-field="button_text">{{ content.button_text or "Learn More" }}</span>
+        </a>
+    </div>
+</section>

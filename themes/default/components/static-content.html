@@ -1,0 +1,5 @@
+<div class="cms-component cms-static" 
+     data-id="{{ id }}" 
+     {% if isAdmin %}contenteditable="true" data-field="content" aria-label="Edit content"{% endif %}>
+    {{ content | safe }}
+</div>

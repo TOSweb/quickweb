@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog{% if category %} — {{ category.name }}{% elif tag %} — #{{ tag.name }}{% endif %} — {{ site_title() }}</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="site-title">{{ site_title() }}</a>
+    </div>
+  </header>
+  <main class="container">
+    {% if category %}
+      <h1>{{ category.name }}</h1>
+      {% if category.description %}<p>{{ category.description }}</p>{% endif %}
+    {% elif tag %}
+      <h1>#{{ tag.name }}</h1>
+    {% else %}
+      <h1>Blog</h1>
+    {% endif %}
+
+    {% if posts.length %}
+      <div class="post-list">
+        {% for post in posts %}
+          <article class="post-card">
+            {% if post.featured_image %}
+              <img src="{{ post.featured_image }}" alt="{{ post.featured_image_alt or post.title }}" loading="lazy" class="post-thumb">
+            {% endif %}
+            <h2><a href="/blog/{{ post.slug }}">{{ post.title }}</a></h2>
+            <div class="post-meta">{{ post.created_at | date }}</div>
+            {% if post.excerpt %}
+              <p>{{ post.excerpt }}</p>
+            {% endif %}
+            <a href="/blog/{{ post.slug }}" class="read-more">Read more →</a>
+          </article>
+        {% endfor %}
+      </div>
+      {% if total_pages > 1 %}
+        <nav class="pagination">
+          {% if page > 1 %}<a href="/blog?page={{ page - 1 }}">← Prev</a>{% endif %}
+          <span>Page {{ page }} of {{ total_pages }}</span>
+          {% if page < total_pages %}<a href="/blog?page={{ page + 1 }}">Next →</a>{% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <p class="empty">No posts yet.</p>
+    {% endif %}
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <p>© {{ year() }} {{ site_title() }} · Powered by MyCMS</p>
+    </div>
+  </footer>
+</body>
+</html>

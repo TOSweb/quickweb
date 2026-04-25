@@ -1,0 +1,15 @@
+{
+  "name": "mycms",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.js",
+    "start": "NODE_ENV=production bun src/index.js",
+    "build": "bun build --compile src/index.js --outfile mycms",
+    "package": "bun run scripts/build-release.js"
+  },
+  "dependencies": {
+    "nunjucks": "^3.2.4",
+    "better-sqlite3": "^9.4.3"
+  }
+}
