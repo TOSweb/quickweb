@@ -40,7 +40,23 @@ export function buildMeta({ page, post, siteUrl } = {}) {
     ogImage ? `<meta name="twitter:image" content="${esc(ogImage)}">` : "",
   ];
 
-  return parts.filter(Boolean).join("\n  ");
+  const customHead = getSetting("custom_head") || "";
+  const gaId = getSetting("google_analytics_id") || "";
+
+  const analyticsScript = gaId ? `
+<script async src="https://www.googletagmanager.com/gtag/js?id=${esc(gaId)}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '${esc(gaId)}');
+</script>` : "";
+
+  let output = parts.filter(Boolean).join("\n  ");
+  if (customHead) output += "\n  " + customHead.trim();
+  if (analyticsScript) output += "\n  " + analyticsScript.trim();
+  
+  return output;
 }
 
 function esc(str) {

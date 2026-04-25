@@ -3,7 +3,7 @@ import { loginPage, handleLogin, setupPage, handleSetup, handleLogout } from "./
 import { dashboardPage } from "./dashboard.js";
 import { settingsPage, saveSettings, saveSeoSettings, saveHostingSettings } from "./settings.js";
 import {
-  pagesList, newPagePage, handleNewPage, pageEditor, handleAddComponent, handleRemoveComponent, handleToggleStatus
+  pagesList, newPagePage, handleNewPage, pageEditor, handleAddComponent, handleRemoveComponent, handleToggleStatus, handleUpdatePageSeo
 } from "./pages.js";
 import {
   componentsList, newComponentPage, handleNewComponent, handleToggleGlobal, handleDeleteComponent, handleUpdateContent
@@ -64,6 +64,9 @@ export async function adminRouter(req, path) {
 
   const togglePageMatch = path.match(/^\/admin\/pages\/toggle-status\/(\d+)$/);
   if (togglePageMatch && method === "POST") return handleToggleStatus(req, { id: togglePageMatch[1] });
+
+  const updateSeoMatch = path.match(/^\/admin\/pages\/update-seo\/(\d+)$/);
+  if (updateSeoMatch && method === "POST") return handleUpdatePageSeo(req, { id: updateSeoMatch[1] });
 
   const addCompMatch = path.match(/^\/admin\/pages\/add-component\/(\d+)$/);
   if (addCompMatch && method === "POST") return handleAddComponent(req, { id: addCompMatch[1] });

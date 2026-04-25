@@ -9,6 +9,7 @@ import { serveSitemap, serveRobots } from "./seo/sitemap.js";
 import { join } from "path";
 import { existsSync } from "fs";
 import { webInstallerPage, handleWebInstaller } from "./admin/web-installer.js";
+import { getContentTypes } from "./core/plugins.js";
 
 export async function router(req) {
   const url = new URL(req.url);
@@ -170,6 +171,35 @@ export async function router(req) {
     `, [tag.id, isAdmin ? 1 : 0]);
 
     return htmlResponse("index", { posts, tag, page: 1, total_pages: 1, isAdmin, isEditing, session });
+  }
+
+  // Dynamic Custom Object Plural Slugs
+  const cts = getContentTypes();
+  for (const ct of cts) {
+    if (!ct.hasPublicUrls) continue;
+    const ctMatch = path.match(new RegExp(`^/${ct.slug}/([^/]+)$`));
+    if (ctMatch) {
+      const objParams = [ctMatch[1]];
+      let query = `SELECT * FROM ${ct.table} WHERE slug = ?`;
+      
+      const hasStatus = ct.fields && ct.fields.some(f => f.name === 'status');
+      if (hasStatus) {
+         query += ` AND (status='published' OR ? = 1)`;
+         objParams.push(isAdmin ? 1 : 0);
+      }
+      
+      const obj = await db.get(query, objParams);
+      if (obj) {
+         // Pass the object both as specific singular name and as generic object payload
+         const payload = { object: obj, isAdmin, isEditing, session };
+         payload[ct.singular] = obj;
+         
+         const seo_head = buildMeta({ page: obj }) + "\n  " + await buildSchema({ page: obj });
+         payload.seo_head = seo_head;
+         
+         return htmlResponse(ct.singular.toLowerCase(), payload);
+      }
+    }
   }
 
   // CMS page

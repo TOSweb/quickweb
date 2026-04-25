@@ -7,6 +7,7 @@ export async function register({ getDB, addContentType, addTag }) {
     CREATE TABLE IF NOT EXISTS services (
       id      INTEGER PRIMARY KEY AUTOINCREMENT,
       title   TEXT NOT NULL,
+      slug    TEXT UNIQUE,
       summary TEXT,
       icon    TEXT,
       price   TEXT,
@@ -23,6 +24,7 @@ export async function register({ getDB, addContentType, addTag }) {
     label: "Services",
     singular: "Service",
     table: "services",
+    hasPublicUrls: true,
     titleField: "title",
     sortField: "sort_order",
     sortDir: "ASC",
@@ -34,6 +36,12 @@ export async function register({ getDB, addContentType, addTag }) {
         type: "text",
         required: true,
         placeholder: "e.g. Web Design",
+      },
+      {
+        name: "slug",
+        label: "URL Slug",
+        type: "text",
+        placeholder: "web-design (auto-generated if empty)",
       },
       {
         name: "summary",

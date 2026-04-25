@@ -7,6 +7,10 @@ import { signContent } from "../core/sanitizer.js";
 import { join } from "path";
 import { readdirSync } from "fs";
 
+function esc(str) {
+  return String(str ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 function getAvailableComponents() {
   const componentsDir = join(process.cwd(), "themes", "default", "components");
   const entries = readdirSync(componentsDir, { withFileTypes: true });
@@ -117,7 +121,38 @@ export const pageEditor = requireAuth(async (req, params, session) => {
             <a href="/${page.slug}?preview=1" target="_blank" class="btn" style="background:#eee">Preview Full Site</a>
         </div>
     </div>
+    
+    <div class="card" style="margin-bottom:20px; padding:20px">
+        <h3 style="font-size:16px; margin:0 0 15px 0">SEO & OpenGraph Metadata</h3>
+        <form method="POST" action="/admin/pages/update-seo/${page.id}">
+            <input type="hidden" name="_csrf" value="${csrfToken}">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:15px">
+                <div>
+                    <label style="font-weight:600;font-size:13px;display:block;margin-bottom:5px">SEO Title <span style="font-weight:400;color:#94a3b8">(falls back to Title)</span></label>
+                    <input type="text" name="seo_title" value="${esc(page.seo_title)}" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafb;font-family:inherit">
+                    <label style="font-weight:600;font-size:13px;display:block;margin:15px 0 5px 0">Meta Description</label>
+                    <textarea name="meta_description" rows="2" maxlength="160" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafb;font-family:inherit">${esc(page.meta_description)}</textarea>
+                    <label style="font-weight:600;font-size:13px;display:block;margin:15px 0 5px 0">Schema JSON-LD</label>
+                    <select name="schema_type" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafb;font-family:inherit">
+                        ${["WebPage","AboutPage","ContactPage","CollectionPage","FAQPage"].map(t => 
+                            `<option value="${t}" ${(page.schema_type || "WebPage") === t ? "selected" : ""}>${t}</option>`
+                        ).join("")}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight:600;font-size:13px;display:block;margin-bottom:5px">OG Title</label>
+                    <input type="text" name="og_title" value="${esc(page.og_title)}" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafb;font-family:inherit">
+                    <label style="font-weight:600;font-size:13px;display:block;margin:15px 0 5px 0">OG Description</label>
+                    <textarea name="og_description" rows="2" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafb;font-family:inherit">${esc(page.og_description)}</textarea>
+                    <label style="font-weight:600;font-size:13px;display:block;margin:15px 0 5px 0">OG Image URL</label>
+                    <input type="text" name="og_image" placeholder="/uploads/card.jpg" value="${esc(page.og_image)}" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafb;font-family:inherit">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-secondary">Save Metadata</button>
+        </form>
+    </div>
 
+    <h3 style="font-size:16px; margin:0 0 15px 0">Page Components</h3>
     <div id="component_list">
         ${activeComponents.map(c => `
         <div class="card" style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center; padding:15px 25px">
@@ -216,5 +251,24 @@ export const handleToggleStatus = requireAuth(csrfProtect(async (req, params, se
     const next = current.status === 'published' ? 'draft' : 'published';
     await db.run("UPDATE pages SET status = ? WHERE id = ?", [next, params.id]);
   }
+  return Response.redirect(`/admin/pages/edit/${params.id}`, 302);
+}));
+
+export const handleUpdatePageSeo = requireAuth(csrfProtect(async (req, params, session) => {
+  const form = req._form;
+  const db = getDB();
+  await db.run(`
+    UPDATE pages SET 
+      seo_title=?, meta_description=?, og_title=?, og_description=?, og_image=?, schema_type=? 
+    WHERE id=?
+  `, [
+    form.get("seo_title")?.trim() || null,
+    form.get("meta_description")?.trim() || null,
+    form.get("og_title")?.trim() || null,
+    form.get("og_description")?.trim() || null,
+    form.get("og_image")?.trim() || null,
+    form.get("schema_type") || "WebPage",
+    params.id
+  ]);
   return Response.redirect(`/admin/pages/edit/${params.id}`, 302);
 }));

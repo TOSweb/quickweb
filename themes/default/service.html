@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {{ seo_head | safe }}
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body>
+  <!-- Include Navigation -->
+  {% include "components/nav-main.html" ignore missing %}
+
+  <main style="max-width: 800px; margin: 60px auto; padding: 20px;">
+    {% if isAdmin and isEditing %}
+      <div style="background: #e0f2fe; color: #0369a1; padding: 10px; border-radius: 6px; margin-bottom: 20px; text-align: center; font-size: 13px;">
+          <strong>Admin Mode:</strong> You are viewing a dynamically generated URL matching the slug <code style="background: rgba(255,255,255,0.5); padding: 2px 5px; border-radius: 4px;">/services/{{ Service.slug }}</code>
+      </div>
+    {% endif %}
+
+    <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 30px;">
+      <div style="font-size: 64px; background: #f8fafb; padding: 20px; border-radius: 16px;">
+        {{ Service.icon | safe }}
+      </div>
+      <div>
+        <h1 style="margin: 0 0 10px 0; font-size: 42px;">{{ Service.title }}</h1>
+        {% if Service.price %}
+          <div style="display: inline-block; background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 20px; font-weight: 600;">
+            {{ Service.price }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="content body-text" style="line-height: 1.8; font-size: 18px; color: #334155;">
+      {{ Service.summary | safe }}
+    </div>
+
+    {% if Service.link %}
+      <div style="margin-top: 40px;">
+        <a href="{{ Service.link }}" class="btn btn-primary" style="display: inline-block; padding: 12px 24px; background: #154d37; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">Explore Custom Layout</a>
+      </div>
+    {% endif %}
+  </main>
+
+  {% if isAdmin and isEditing %}
+  <script>window.CSRF_TOKEN = "{{ csrf_token(session.id) }}";</script>
+  {% endif %}
+</body>
+</html>
