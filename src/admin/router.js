@@ -3,14 +3,14 @@ import { loginPage, handleLogin, setupPage, handleSetup, handleLogout } from "./
 import { dashboardPage } from "./dashboard.js";
 import { settingsPage, saveSettings, saveSeoSettings, saveHostingSettings } from "./settings.js";
 import {
-  pagesList, newPagePage, handleNewPage, pageEditor, handleAddComponent, handleRemoveComponent, handleToggleStatus, handleUpdatePageSeo
+  pagesList, newPagePage, handleNewPage, pageEditor, handleAddComponent, handleRemoveComponent, handleToggleStatus, handleUpdatePageSeo, handleDeletePage
 } from "./pages.js";
 import {
   componentsList, newComponentPage, handleNewComponent, handleToggleGlobal, handleDeleteComponent, handleUpdateContent
 } from "./components.js";
 import { importComponentPage, handleImportComponent } from "./importer.js";
 import {
-  componentTemplatesList, editComponentTemplate, handleSaveTemplate, handleCreateTemplate
+  componentTemplatesList, editComponentTemplate, handleSaveTemplate, handleCreateTemplate, handleDeleteTemplate
 } from "./developer.js";
 import {
   usersList, newUserPage, handleNewUser, editUserPage, handleEditUser,
@@ -25,6 +25,7 @@ import { mediaLibrary, handleUpload, handleDeleteMedia } from "./media.js";
 import { pluginsList, handlePluginUpload, handleDeletePlugin } from "./plugins.js";
 import { envPage, handleSaveEnv } from "./env.js";
 import { hostingGuidePage } from "./hosting-guide.js";
+import { transferPage, handleExport, handleImport, handleCancelImport } from "./transfer.js";
 import { makeContentTypeHandlers } from "./content-type.js";
 import { getContentTypes, getContentTypeVersion } from "../core/plugins.js";
 import { requireAuth } from "../core/auth.js";
@@ -72,6 +73,9 @@ export async function adminRouter(req, path) {
   const editPageMatch = path.match(/^\/admin\/pages\/edit\/(\d+)$/);
   if (editPageMatch) return pageEditor(req, { id: editPageMatch[1] });
 
+  const deletePageMatch = path.match(/^\/admin\/pages\/delete\/(\d+)$/);
+  if (deletePageMatch) return handleDeletePage(req, { id: deletePageMatch[1] });
+
   const togglePageMatch = path.match(/^\/admin\/pages\/toggle-status\/(\d+)$/);
   if (togglePageMatch && method === "POST") return handleToggleStatus(req, { id: togglePageMatch[1] });
 
@@ -103,6 +107,9 @@ export async function adminRouter(req, path) {
   // Developer
   if (path === "/admin/developer/components") return componentTemplatesList(req, {});
   if (path === "/admin/developer/components/new" && method === "POST") return handleCreateTemplate(req, {});
+  const devDeleteMatch = path.match(/^\/admin\/developer\/components\/([^/]+)\/delete$/);
+  if (devDeleteMatch && method === "POST") return handleDeleteTemplate(req, { name: devDeleteMatch[1] });
+
   const devEditMatch = path.match(/^\/admin\/developer\/components\/edit\/([^/]+)$/);
   if (devEditMatch) {
     if (method === "GET") return editComponentTemplate(req, { name: devEditMatch[1] });
@@ -178,6 +185,12 @@ export async function adminRouter(req, path) {
     if (method === "POST") return handleSaveEnv(req, {});
   }
   if (path === "/admin/hosting") return hostingGuidePage(req, {});
+
+  // Transfer
+  if (path === "/admin/transfer" && method === "GET") return transferPage(req, {});
+  if (path === "/admin/transfer/export" && method === "POST") return handleExport(req, {});
+  if (path === "/admin/transfer/import" && method === "POST") return handleImport(req, {});
+  if (path === "/admin/transfer/cancel" && method === "POST") return handleCancelImport(req, {});
   if (path === "/admin" || path === "/admin/") return dashboardPage(req, {});
 
   // Media

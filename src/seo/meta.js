@@ -40,7 +40,7 @@ export function buildMeta({ page, post, siteUrl } = {}) {
     ogImage ? `<meta name="twitter:image" content="${esc(ogImage)}">` : "",
   ];
 
-  const customHead = getSetting("custom_head") || "";
+  const customHead = page?.custom_head || "";
   const gaId = getSetting("google_analytics_id") || "";
 
   const analyticsScript = gaId ? `

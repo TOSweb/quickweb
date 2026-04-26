@@ -1,14 +1,21 @@
 import { $ } from "bun";
 
-console.log("Packaging Veave CMS for cPanel/hPanel deployment...");
+const OUT = "veave.tar.gz";
 
-// Remove existing zip
-await $`rm -f veavecms-release.zip`.nothrow();
+console.log("Packaging Veave CMS for deployment...");
 
-// Zip the necessary directories and files
-// Exclude local .env, data folder contents (except the folder itself if needed), git, and node_modules
-await $`zip -r veavecms-release.zip src themes config plugins scripts package.json README.md -x "config/.env*" "data/*" "node_modules/*" "*.git*" "*.DS_Store"`;
+await $`rm -f ${OUT}`.nothrow();
 
-console.log("-----------------------------------------");
-console.log("✅ Done! Created veavecms-release.zip");
-console.log("Upload this file to your cPanel File Manager, extract it, and setup a Node.js App pointing to src/index.js.");
+await $`tar -czf ${OUT} \
+  --exclude='node_modules' \
+  --exclude='.git' \
+  --exclude='data' \
+  --exclude='.env*' \
+  --exclude='*.DS_Store' \
+  --exclude='veave.zip' \
+  --exclude='veave.tar.gz' \
+  src config themes plugins package.json bun.lock server.cjs`;
+
+console.log(`✅ Created ${OUT}`);
+console.log("Upload this file to cPanel File Manager → Extract Here.");
+console.log("Use .tar.gz (not .zip) — avoids antivirus false positives on shared hosting.");

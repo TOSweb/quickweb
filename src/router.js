@@ -6,10 +6,27 @@ import { getSession, getTokenFromRequest } from "./core/auth.js";
 import { buildMeta } from "./seo/meta.js";
 import { buildSchema } from "./seo/schema.js";
 import { serveSitemap, serveRobots } from "./seo/sitemap.js";
-import { join } from "path";
+import { join, extname } from "path";
 import { existsSync } from "fs";
 import { webInstallerPage, handleWebInstaller } from "./admin/web-installer.js";
 import { getContentTypes } from "./core/plugins.js";
+
+const MIME_TYPES = {
+  ".html": "text/html", ".css": "text/css", ".js": "text/javascript",
+  ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+  ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+  ".pdf": "application/pdf", ".json": "application/json",
+  ".ico": "image/x-icon", ".woff": "font/woff", ".woff2": "font/woff2",
+  ".ttf": "font/ttf", ".mp4": "video/mp4", ".webm": "video/webm",
+};
+
+async function serveFile(filePath) {
+  if (typeof Bun !== "undefined") return new Response(Bun.file(filePath));
+  const { readFile } = await import("fs/promises");
+  const data = await readFile(filePath);
+  const mime = MIME_TYPES[extname(filePath).toLowerCase()] || "application/octet-stream";
+  return new Response(data, { headers: { "Content-Type": mime } });
+}
 
 function escHtml(str) {
   return String(str ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -100,7 +117,7 @@ export async function router(req) {
     const theme = getSetting("active_theme") || "default";
     const filePath = join(process.cwd(), "themes", theme, path);
     if (existsSync(filePath)) {
-      const res = new Response(Bun.file(filePath));
+      const res = await serveFile(filePath);
       res.headers.set("Cache-Control", "public, max-age=31536000, immutable");
       return res;
     }
@@ -112,7 +129,7 @@ export async function router(req) {
     if (!isAdmin) return new Response("Forbidden", { status: 403 });
     const filePath = join(process.cwd(), "src", "static", "admin", path.replace("/admin/static/", ""));
     if (existsSync(filePath)) {
-      const res = new Response(Bun.file(filePath));
+      const res = await serveFile(filePath);
       res.headers.set("Cache-Control", "public, max-age=31536000, immutable");
       return res;
     }
@@ -122,7 +139,7 @@ export async function router(req) {
   // 3. Uploads
   if (path.startsWith("/uploads/")) {
     const filePath = join(process.cwd(), "data", path);
-    if (existsSync(filePath)) return new Response(Bun.file(filePath));
+    if (existsSync(filePath)) return serveFile(filePath);
     return new Response("Not found", { status: 404 });
   }
 

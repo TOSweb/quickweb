@@ -62,8 +62,8 @@ const PLATFORMS = [
     id: "cpanel",
     name: "cPanel Hosting",
     emoji: "🌐",
-    tagline: "Shared hosting with cPanel panel",
-    difficulty: "Intermediate",
+    tagline: "Apache or LiteSpeed + MySQL — no SSH needed",
+    difficulty: "Beginner",
     cost: "Varies by host",
     dbOptions: "MySQL via cPanel",
   },
@@ -151,6 +151,20 @@ function step(num, emoji, title, body) {
   </div>`;
 }
 
+// ─── Shared transfer step ─────────────────────────────────────────────────────
+
+function transferStep(num) {
+  return step(num, "📦", "Bring your local content to production",
+    `<p>Your production server starts empty. Use the <strong>Transfer</strong> tool to carry everything over — pages, blog posts, components, and uploaded media.</p>
+     <ol style="margin:12px 0 8px;padding-left:20px;line-height:2.2">
+       <li>On your <strong>local</strong> Veave admin → <a href="/admin/transfer" style="color:#154d37;font-weight:600">Transfer</a> → click <strong>Download Transfer ZIP</strong></li>
+       <li>Log into <strong>production</strong> → go to <code>/admin/transfer</code> → upload the ZIP</li>
+       <li>Restart the server — content is applied on the next boot</li>
+     </ol>
+     <p style="font-size:13px;color:#64748b">Uploads are merged (not deleted) on the destination. Safe to run more than once.</p>`
+  );
+}
+
 // ─── Per-platform guides ───────────────────────────────────────────────────────
 
 function railwayGuide() {
@@ -212,7 +226,8 @@ function railwayGuide() {
        ${envTable(fillRow("SITE_URL", "https://yoursite.up.railway.app", "Paste your actual Railway domain here"))}
        <p style="font-size:13px;color:#64748b;margin-top:8px">Later you can connect a custom domain (like yourname.com) in the same Settings panel.</p>`
     ),
-    step(7, "🎉", "You're live!",
+    transferStep(7),
+    step(8, "🎉", "You're live!",
       `<p>Railway redeploys automatically every time you push code to GitHub.</p>
        <p style="margin:10px 0">Visit your site URL to see it live. Go to <strong>/admin</strong> to log in and start editing.</p>
        <p style="font-size:13px;color:#64748b">If anything looks wrong, click <strong>Deployments</strong> → your latest deploy → <strong>View Logs</strong> to see what happened.</p>`
@@ -254,7 +269,8 @@ function renderGuide() {
        <p style="margin:10px 0">Set mount path to <code>/data</code>, then add:</p>
        ${envTable(envRow("DB_PATH", "/data/cms.db") + envRow("UPLOAD_PATH", "/data/uploads"))}`
     ),
-    step(6, "🎉", "Deploy!",
+    transferStep(6),
+    step(7, "🎉", "Deploy!",
       `<p>Click <strong>Create Web Service</strong>. Render will build and deploy your site automatically.</p>
        <p style="margin:10px 0;font-size:13px;color:#64748b">Free tier services spin down after 15 minutes of inactivity — the first visit may take ~30 seconds to wake up. Upgrade to a paid plan to avoid this.</p>`
     ),
@@ -295,7 +311,8 @@ function flyioGuide() {
        <p style="margin:10px 0">Then set it (replace with your actual app name):</p>
        ${codeBlock("fly secrets set SITE_URL=https://YOUR-APP.fly.dev")}`
     ),
-    step(6, "🎉", "Deploy!",
+    transferStep(6),
+    step(7, "🎉", "Deploy!",
       `${codeBlock("fly deploy")}
        <p style="margin:8px 0;font-size:13px;color:#64748b">Your site is live. Run <code>fly open</code> to open it in your browser.</p>`
     ),
@@ -337,7 +354,8 @@ function coolifyGuide() {
       `<p>In Coolify: go to your app → <strong>Storages</strong> → <strong>Add Storage</strong> → mount at <code>/data</code>.</p>
        <p style="font-size:13px;color:#64748b;margin-top:8px">This makes sure your database and uploaded files survive server restarts.</p>`
     ),
-    step(6, "🎉", "Deploy and connect your domain",
+    transferStep(6),
+    step(7, "🎉", "Deploy and connect your domain",
       `<p>Click <strong>Deploy</strong>. Then in Coolify: <strong>Domains</strong> → add your domain name → Coolify handles SSL automatically.</p>`
     ),
   ].join("");
@@ -359,9 +377,34 @@ function vpsGuide() {
        ${codeBlock("source ~/.bashrc")}`
     ),
     step(3, "📂", "Upload your project files",
-      `<p>From your local computer, copy your project to the server:</p>
-       ${codeBlock("scp -r ./your-project root@YOUR-SERVER-IP:/var/www/cms")}
-       <p style="margin:10px 0;font-size:13px;color:#64748b">Or use <code>git clone</code> on the server if your code is on GitHub.</p>`
+      `<p>From your local computer, copy only the files the server needs — skip <code>node_modules</code>, <code>data</code>, and <code>.env</code> files:</p>
+       ${codeBlock("scp -r src config themes plugins package.json bun.lock root@YOUR-SERVER-IP:/var/www/cms")}
+       <p style="margin:10px 0 6px;font-size:13px">Not sure what to include? Here's the full breakdown:</p>
+       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0">
+         <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px 14px">
+           <div style="font-weight:700;font-size:13px;color:#166534;margin-bottom:8px">✅ Copy these</div>
+           <ul style="margin:0;padding-left:16px;font-size:13px;line-height:2;font-family:monospace">
+             <li>src/</li>
+             <li>config/</li>
+             <li>themes/</li>
+             <li>plugins/</li>
+             <li>package.json</li>
+             <li>bun.lock</li>
+           </ul>
+         </div>
+         <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:12px 14px">
+           <div style="font-weight:700;font-size:13px;color:#991b1b;margin-bottom:8px">🚫 Leave behind</div>
+           <ul style="margin:0;padding-left:16px;font-size:13px;line-height:2;font-family:monospace">
+             <li>node_modules/</li>
+             <li>data/</li>
+             <li>.env*</li>
+             <li>.git/</li>
+             <li>docs/</li>
+             <li>scripts/</li>
+           </ul>
+         </div>
+       </div>
+       <p style="margin-top:10px;font-size:13px;color:#64748b">Prefer GitHub? <code>git clone</code> your repo on the server, then run <code>bun install</code> — git respects your <code>.gitignore</code> so <code>node_modules</code> and <code>data</code> won't be included.</p>`
     ),
     step(4, "🔑", "Create your .env file",
       `<p>On the server, in your project folder:</p>
@@ -397,56 +440,153 @@ function vpsGuide() {
        ${codeBlock("certbot --nginx -d yourdomain.com")}
        <p style="margin:10px 0;font-size:13px;color:#64748b">Certbot sets up HTTPS automatically. Replace <code>yourdomain.com</code> with your actual domain.</p>`
     ),
-    step(7, "🎉", "You're live!",
+    transferStep(7),
+    step(8, "🎉", "You're live!",
       `<p>Visit your domain. Log in at <code>/admin</code>. Your site auto-restarts if the server reboots.</p>`
     ),
   ].join("");
 }
 
 function cpanelGuide() {
+  const errorTable = (rows) => `
+    <div style="overflow-x:auto;margin:12px 0">
+      <table style="width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <thead><tr style="background:#f1f5f9">
+          <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.06em;white-space:nowrap">ERROR</th>
+          <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.06em">CAUSE &amp; FIX</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+
+  const eRow = (err, fix) => `<tr>
+    <td style="padding:10px 12px;font-family:monospace;font-size:12px;color:#dc2626;white-space:nowrap;vertical-align:top">${esc(err)}</td>
+    <td style="padding:10px 12px;font-size:13px;color:#334155">${fix}</td>
+  </tr>`;
+
   return [
-    step(1, "📦", "Upload your files",
-      `<p>Log in to cPanel → <strong>File Manager</strong> → navigate to <code>public_html</code> (or a subdirectory).</p>
-       <p style="margin:10px 0">Upload your entire project folder there. You can use the <strong>Upload</strong> button or connect via FTP.</p>`
+    step(1, "📦", "Package your files",
+      `<p>Run this in your project folder on your local computer:</p>
+       ${codeBlock("bun run package")}
+       <p style="margin:10px 0">This creates <code>veave.tar.gz</code> in the project root — your upload-ready bundle.</p>
+       <div style="background:#fef3c7;color:#92400e;border-radius:10px;padding:12px 16px;font-size:13px">
+         <strong>Must use .tar.gz — never .zip.</strong> cPanel's built-in antivirus (ClamAV with Sanesecurity rules) flags JavaScript files inside ZIP archives as malware. This is a false positive. The <code>.tar.gz</code> format bypasses the scanner entirely. The <code>bun run package</code> command already produces a <code>.tar.gz</code> for this reason.
+       </div>`
     ),
-    step(2, "🟢", "Create a Node.js app",
-      `<p>In cPanel → look for <strong>Node.js App</strong> or <strong>Setup Node.js App</strong> → click <strong>Create Application</strong>.</p>
-       <ul style="margin:10px 0;padding-left:20px;line-height:2">
-         <li>Node.js version: select the latest available</li>
-         <li>Application mode: Production</li>
-         <li>Application root: the folder you uploaded to</li>
-         <li>Application startup file: <code>src/index.js</code></li>
-       </ul>`
-    ),
-    step(3, "🗄️", "Create a MySQL database",
-      `<p>In cPanel → <strong>MySQL Databases</strong>:</p>
-       <ol style="margin:10px 0;padding-left:20px;line-height:2">
-         <li>Create a new database (e.g. <code>mysite_cms</code>)</li>
-         <li>Create a database user with a strong password</li>
-         <li>Add the user to the database with <strong>All Privileges</strong></li>
+
+    step(2, "📂", "Upload and extract into public_html",
+      `<p>In cPanel → <strong>File Manager</strong> → navigate into <code>public_html</code>.</p>
+       <ol style="margin:10px 0;padding-left:20px;line-height:2.6">
+         <li><strong>Delete any existing <code>index.html</code> or <code>index.php</code></strong> in <code>public_html</code>. The web server will serve that static file and completely bypass your Node.js app if either exists.</li>
+         <li>Click <strong>Upload</strong> → select <code>veave.tar.gz</code> → wait until 100%.</li>
+         <li>Select <code>veave.tar.gz</code> in the file list → click <strong>Extract</strong>. When asked for the destination, leave it as <code>/home/yourusername/public_html</code> — do not add a subfolder.</li>
+         <li>Verify the result: <code>src/</code>, <code>config/</code>, <code>themes/</code>, and <code>server.cjs</code> should all be <em>directly</em> inside <code>public_html</code> — not inside a nested folder.</li>
+         <li><strong>If <code>public_html/.htaccess</code> does not exist, create a blank one.</strong> (In File Manager: <strong>+ File</strong> → name it <code>.htaccess</code> → Create.) cPanel writes your environment variables into this file — if it is missing, saving env vars will throw an error and your app will not start.</li>
        </ol>
-       <p style="font-size:13px;color:#64748b">Write down the database name, username, and password — you'll need them in the next step.</p>`
+       <div style="background:#fef3c7;color:#92400e;border-radius:10px;padding:12px 16px;font-size:13px;margin-top:4px">
+         <strong>Wrong structure looks like:</strong> <code>public_html/veave/src/</code><br>
+         <strong>Correct structure looks like:</strong> <code>public_html/src/</code>&ensp;
+         If you accidentally extracted into a subfolder, select all files inside it, move them up one level, then delete the empty folder.
+       </div>`
     ),
-    step(4, "🔑", "Set environment variables",
-      `<p>In the Node.js App settings → <strong>Environment Variables</strong> section.</p>
-       <p style="margin:8px 0 4px">Copy these generated secrets — then fill in your own values for the yellow rows:</p>
+
+    step(3, "🗄️", "Create a MySQL database",
+      `<p>In cPanel → <strong>MySQL Databases</strong> (or <strong>MySQL Database Wizard</strong>):</p>
+       <ol style="margin:10px 0;padding-left:20px;line-height:2.4">
+         <li>Create a new database. Type a short name like <code>cms</code> — cPanel automatically prefixes your cPanel username, so the actual database name becomes something like <code>alice_cms</code>.</li>
+         <li>Create a new database user with a strong password.</li>
+         <li>Under <strong>Add User To Database</strong> → select both → click <strong>Add</strong> → tick <strong>All Privileges</strong> → <strong>Make Changes</strong>.</li>
+       </ol>
+       <div style="background:#e0f2fe;color:#0369a1;border-radius:10px;padding:12px 16px;font-size:13px;margin-top:4px">
+         <strong>Note the full prefixed names.</strong> After creation, the MySQL Databases page shows the real names — e.g. <code>alice_cms</code> and <code>alice_dbuser</code>. You need these exact strings (with prefix) when setting env vars in the next steps.
+       </div>`
+    ),
+
+    step(4, "🟢", "Create the Node.js App",
+      `<p>In cPanel → <strong>Node.js App</strong> (sometimes listed as <strong>Setup Node.js App</strong>) → <strong>Create Application</strong>.</p>
+       <div style="overflow-x:auto;margin:12px 0">
+         <table style="width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+           <thead><tr style="background:#f1f5f9">
+             <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.06em">FIELD</th>
+             <th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.06em">WHAT TO SET</th>
+           </tr></thead>
+           <tbody>
+             <tr><td style="padding:10px 12px;font-weight:600;font-size:13px">Node.js version</td><td style="padding:10px 12px;font-size:13px">Highest available — 18 or 20 preferred, minimum 18</td></tr>
+             <tr><td style="padding:10px 12px;font-weight:600;font-size:13px">Application mode</td><td style="padding:10px 12px;font-size:13px">Production</td></tr>
+             <tr><td style="padding:10px 12px;font-weight:600;font-size:13px">Application root</td><td style="padding:10px 12px;font-size:13px"><code>public_html</code></td></tr>
+             <tr style="background:#fffbeb;border:2px solid #fbbf24">
+               <td style="padding:10px 12px;font-weight:700;font-size:13px;color:#92400e">Application startup file</td>
+               <td style="padding:10px 12px;font-size:13px;color:#92400e;font-weight:700"><code>server.cjs</code> &nbsp;←&nbsp; not <code>src/index.js</code></td>
+             </tr>
+             <tr><td style="padding:10px 12px;font-weight:600;font-size:13px">Application URL</td><td style="padding:10px 12px;font-size:13px">Leave as your domain — do not change</td></tr>
+           </tbody>
+         </table>
+       </div>
+       <div style="background:#fef3c7;color:#92400e;border-radius:10px;padding:12px 16px;font-size:13px">
+         <strong>Why <code>server.cjs</code> and not <code>src/index.js</code>?</strong><br>
+         cPanel runs Node.js apps through either <strong>Apache + Phusion Passenger</strong> or <strong>LiteSpeed + Passenger</strong> depending on your host. Both of them load the startup file using <code>require()</code> — the old CommonJS module system. Veave uses modern ES modules with top-level <code>await</code>, which <code>require()</code> cannot load (you would get <code>ERR_REQUIRE_ASYNC_MODULE</code>). <code>server.cjs</code> is a tiny CommonJS bridge file that calls <code>import()</code> internally to load the real app — this works on every cPanel stack.
+       </div>`
+    ),
+
+    step(5, "🔑", "Set environment variables",
+      `<p>Still in the Node.js App panel → scroll to <strong>Environment Variables</strong> → add every row below before clicking Save.</p>
        ${envTable(
-         envRow("SESSION_SECRET", "GENERATED_ON_PAGE_LOAD", "Auto-generated — click Copy") +
-         envRow("HMAC_SECRET",    "GENERATED_ON_PAGE_LOAD", "Auto-generated — click Copy") +
-         envRow("CSRF_SECRET",    "GENERATED_ON_PAGE_LOAD", "Auto-generated — click Copy") +
-         fillRow("SITE_URL",      "https://yourdomain.com",  "Your actual domain with https://") +
-         envRow("DB_HOST",        "localhost") +
-         fillRow("DB_NAME",       "mysite_cms",              "The database name you created in step 3") +
-         fillRow("DB_USER",       "your_db_username",        "The database user you created in step 3") +
-         fillRow("DB_PASSWORD",   "your_db_password",        "The password you set in step 3")
-       )}`
+         envRow("NODE_ENV",       "production",              "Switches the app to MySQL. Without this it tries SQLite, which cannot run on shared hosting.") +
+         envRow("SESSION_SECRET", "GENERATED_ON_PAGE_LOAD", "Unique secret that signs login sessions — click Copy") +
+         envRow("HMAC_SECRET",    "GENERATED_ON_PAGE_LOAD", "Signs component integrity — click Copy") +
+         envRow("CSRF_SECRET",    "GENERATED_ON_PAGE_LOAD", "Prevents cross-site form attacks — click Copy") +
+         fillRow("SITE_URL",      "https://yourdomain.com",  "Your exact domain including https://. Used to build all redirects — wrong value causes 500 errors site-wide.") +
+         envRow("DB_HOST",        "localhost",               "Always localhost on shared cPanel — the database runs on the same server") +
+         fillRow("DB_NAME",       "alice_cms",               "The full prefixed name shown on the MySQL Databases page") +
+         fillRow("DB_USER",       "alice_dbuser",            "The full prefixed database username") +
+         fillRow("DB_PASSWORD",   "your_db_password",        "The password you chose when creating the database user")
+       )}
+       <div style="background:#fee2e2;color:#991b1b;border-radius:10px;padding:14px 16px;font-size:13px;margin-top:12px;line-height:1.8">
+         <strong>All 9 variables must be set before you start the app.</strong><br>
+         • Missing <code>NODE_ENV=production</code> → app falls back to SQLite → <code>better-sqlite3</code> fails to compile → app crashes on boot.<br>
+         • Missing <code>DB_HOST</code> → same SQLite fallback and crash.<br>
+         • Missing or wrong <code>SITE_URL</code> → every redirect throws a 500 "Failed to parse URL" error.<br>
+         • Wrong <code>DB_NAME</code> / <code>DB_USER</code> / <code>DB_PASSWORD</code> → app starts but crashes at database init with an access-denied error.
+       </div>`
     ),
-    step(5, "🚀", "Start your app",
-      `<p>In the Node.js App panel → click <strong>Run NPM Install</strong>, then click <strong>Start</strong> (or Restart).</p>
-       <p style="margin:10px 0;font-size:13px;color:#64748b">If your host doesn't have a Node.js App section, contact their support — they may need to enable it for your account.</p>`
+
+    step(6, "🚀", "Install packages and start",
+      `<p>In the Node.js App panel:</p>
+       <ol style="margin:10px 0;padding-left:20px;line-height:2.4">
+         <li>Click <strong>Run NPM Install</strong>. This downloads all server dependencies — takes 1–3 minutes on shared hosting. Wait until you see a success message before continuing.</li>
+         <li>Click <strong>Save</strong>, then click <strong>Restart</strong> (or <strong>Start</strong> if the app is not running yet).</li>
+         <li>Wait about 10–15 seconds for the process to initialise, then open your domain in a browser. On a fresh install you should see the Veave setup screen.</li>
+       </ol>
+       <div style="background:#f0fdf4;color:#166534;border-radius:10px;padding:12px 16px;font-size:13px;margin-top:6px">
+         <strong>How to read the error log:</strong> In the Node.js App panel, scroll down and click <strong>Error Log</strong>. The log shows the real error — not just "Internal Server Error". If the log is empty, the app has not started yet; wait a few seconds and refresh.
+       </div>`
     ),
-    step(6, "🎉", "Done!",
-      `<p>Visit your domain. Your site is live. Log in at <code>/admin</code>.</p>`
+
+    transferStep(7),
+
+    step(8, "🛠️", "Troubleshooting common errors",
+      `<p>If something goes wrong, open the Error Log in the Node.js App panel. Match your error to the table below:</p>
+       ${errorTable(
+         eRow("ERR_REQUIRE_ASYNC_MODULE",         "Startup file is set to <code>src/index.js</code>. Change it to <code>server.cjs</code> and restart.") +
+         eRow("ERR_UNSUPPORTED_ESM_URL_SCHEME",   "Node.js is trying to load <code>bun:sqlite</code>. Cause: <code>NODE_ENV</code> or <code>DB_HOST</code> is missing, so the app falls back to SQLite. Set both env vars and restart.") +
+         eRow("better-sqlite3 bindings not found","Same as above — app fell back to SQLite and the native module can't compile on shared hosting. Ensure <code>NODE_ENV=production</code> and <code>DB_HOST=localhost</code> are set.") +
+         eRow("ER_ACCESS_DENIED_ERROR",           "Wrong <code>DB_USER</code> or <code>DB_PASSWORD</code>. Double-check the prefixed username and password on the MySQL Databases page.") +
+         eRow("ER_BAD_DB_ERROR",                  "Wrong <code>DB_NAME</code>. Make sure you copied the full prefixed name (e.g. <code>alice_cms</code>, not just <code>cms</code>).") +
+         eRow("Failed to parse URL from /…",      "Missing or wrong <code>SITE_URL</code>. It must be a full URL including <code>https://</code> (e.g. <code>https://yourdomain.com</code>).") +
+         eRow("Unable to set env vars in .htaccess","The file <code>public_html/.htaccess</code> does not exist. Create a blank file with that name in File Manager, then try saving env vars again.") +
+         eRow("503 Service Unavailable",           "App has not started yet, or crashed on boot. Check the Error Log. Most common cause: a missing env variable from Step 5.")
+       )}
+       <p style="font-size:13px;color:#64748b;margin-top:10px">After fixing any issue: in the Node.js App panel → <strong>Restart</strong>. Allow 10–15 seconds, then reload your domain.</p>`
+    ),
+
+    step(9, "🎉", "You're live!",
+      `<p>Visit your domain and go to <code>/admin</code> to log in and start editing.</p>
+       <div style="background:#f0fdf4;color:#166534;border-radius:10px;padding:12px 16px;font-size:13px;margin-top:10px;line-height:1.8">
+         <strong>How to update the site in the future:</strong><br>
+         1. Make your changes locally and run <code>bun run package</code><br>
+         2. In File Manager: upload <code>veave.tar.gz</code> → extract into <code>public_html</code> (overwrite)<br>
+         3. In the Node.js App panel: click <strong>Restart</strong>
+       </div>`
     ),
   ].join("");
 }

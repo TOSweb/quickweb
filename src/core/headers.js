@@ -44,11 +44,15 @@ export function securityHeaders(response, config) {
 function buildCsp(config) {
   const directives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: *",
-    "font-src 'self'",
-    "connect-src 'self'",
+    // 'unsafe-inline' is required for the inline editor; https: allows CDN scripts
+    // that users embed in imported components (Tailwind, Alpine, etc.)
+    "script-src 'self' 'unsafe-inline' https:",
+    // https: allows CDN stylesheets and Google Fonts CSS
+    "style-src 'self' 'unsafe-inline' https:",
+    "img-src 'self' data: blob: https:",
+    // https: allows Google Fonts and any other web font CDN
+    "font-src 'self' https:",
+    "connect-src 'self' https:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

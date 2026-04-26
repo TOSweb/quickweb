@@ -6,10 +6,12 @@ import { loadPlugins, loadCoreContentTypes } from "./core/plugins.js";
 import { registerBuiltins } from "./core/builtins.js";
 import { router } from "./router.js";
 import { securityHeaders } from "./core/headers.js";
+import { applyPendingImport } from "./admin/transfer.js";
 
 async function start() {
   console.log(`⬡  Veave CMS starting [${config.env}]...`);
 
+  applyPendingImport();   // swap in pending DB/uploads before opening the DB
   await initDB();
   initTheme();
   registerBuiltins();
@@ -35,21 +37,39 @@ async function start() {
       }
     });
   } else {
-    // Node.js fallback via http module
+    // Node.js fallback (cPanel / Passenger)
     const { createServer } = await import("http");
+    const baseUrl = config.siteUrl || `http://localhost:${port}`;
+
     createServer(async (req, res) => {
-      const url = `${config.siteUrl}${req.url}`;
-      const bunReq = new Request(url, {
-        method: req.method,
-        headers: req.headers,
-        body: ["GET", "HEAD"].includes(req.method) ? null : req,
-      });
-      const response = await router(bunReq);
-      const securedResponse = securityHeaders(response, config);
-      
-      res.writeHead(securedResponse.status, Object.fromEntries(securedResponse.headers));
-      const body = await securedResponse.arrayBuffer();
-      res.end(Buffer.from(body));
+      try {
+        // Buffer the full body so formData() works reliably on Node.js
+        let body = null;
+        if (!["GET", "HEAD"].includes(req.method)) {
+          body = await new Promise((resolve, reject) => {
+            const chunks = [];
+            req.on("data", c => chunks.push(c));
+            req.on("end", () => resolve(Buffer.concat(chunks)));
+            req.on("error", reject);
+          });
+        }
+
+        const bunReq = new Request(`${baseUrl}${req.url}`, {
+          method: req.method,
+          headers: req.headers,
+          body,
+        });
+
+        const response = await router(bunReq);
+        const securedResponse = securityHeaders(response, config);
+
+        res.writeHead(securedResponse.status, Object.fromEntries(securedResponse.headers));
+        res.end(Buffer.from(await securedResponse.arrayBuffer()));
+      } catch (err) {
+        console.error("[REQUEST ERROR]", err);
+        res.writeHead(500, { "Content-Type": "text/plain" });
+        res.end(`Internal Server Error\n\n${err?.message}\n\n${err?.stack || ""}`);
+      }
     }).listen(port);
   }
 

@@ -4,6 +4,7 @@ import { adminHTML } from "./base.js";
 import { requireAuth } from "../core/auth.js";
 import { csrfProtect, generateCsrfToken } from "../core/csrf.js";
 import { signContent } from "../core/sanitizer.js";
+import { deleteObjectPermissions } from "../core/permissions.js";
 import { join } from "path";
 import { readdirSync } from "fs";
 
@@ -148,6 +149,10 @@ export const pageEditor = requireAuth(async (req, params, session) => {
                     <input type="text" name="og_image" placeholder="/uploads/card.jpg" value="${esc(page.og_image)}" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafb;font-family:inherit">
                 </div>
             </div>
+            <div style="margin-top:15px">
+                <label style="font-weight:600;font-size:13px;display:block;margin-bottom:5px">Extra &lt;head&gt; HTML <span style="font-weight:400;color:#94a3b8">(scripts, styles, pixels — this page only)</span></label>
+                <textarea name="custom_head" rows="4" placeholder="<script src='https://...'></script>" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafb;font-family:monospace;font-size:12px">${esc(page.custom_head || "")}</textarea>
+            </div>
             <button type="submit" class="btn btn-secondary">Save Metadata</button>
         </form>
     </div>
@@ -258,8 +263,8 @@ export const handleUpdatePageSeo = requireAuth(csrfProtect(async (req, params, s
   const form = req._form;
   const db = getDB();
   await db.run(`
-    UPDATE pages SET 
-      seo_title=?, meta_description=?, og_title=?, og_description=?, og_image=?, schema_type=? 
+    UPDATE pages SET
+      seo_title=?, meta_description=?, og_title=?, og_description=?, og_image=?, schema_type=?, custom_head=?
     WHERE id=?
   `, [
     form.get("seo_title")?.trim() || null,
@@ -268,7 +273,15 @@ export const handleUpdatePageSeo = requireAuth(csrfProtect(async (req, params, s
     form.get("og_description")?.trim() || null,
     form.get("og_image")?.trim() || null,
     form.get("schema_type") || "WebPage",
+    form.get("custom_head")?.trim() || null,
     params.id
   ]);
   return Response.redirect(`/admin/pages/edit/${params.id}`, 302);
 }));
+
+export const handleDeletePage = requireAuth(async (req, params, _session) => {
+  const db = getDB();
+  await db.run("DELETE FROM pages WHERE id = ?", [params.id]);
+  await deleteObjectPermissions("page", params.id);
+  return Response.redirect("/admin/pages", 302);
+});

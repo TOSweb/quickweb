@@ -1,6 +1,6 @@
 // src/admin/developer.js
 import { join } from "path";
-import { readdir, mkdir, writeFile, readFile } from "fs/promises";
+import { readdir, mkdir, writeFile, readFile, rm } from "fs/promises";
 import { adminHTML } from "./base.js";
 import { requireAuth } from "../core/auth.js";
 import { csrfProtect, generateCsrfToken } from "../core/csrf.js";
@@ -27,8 +27,12 @@ export const componentTemplatesList = requireAuth(async (req, params, session) =
             <div class="card" style="padding:16px; text-align:center; margin-bottom:0">
                 <div style="font-size:24px; margin-bottom:8px">🧩</div>
                 <strong style="font-size:14px">${t}</strong>
-                <div style="margin-top:12px">
+                <div style="margin-top:12px; display:flex; gap:6px; justify-content:center">
                     <a href="/admin/developer/components/edit/${t}" class="btn btn-secondary" style="padding:4px 12px; font-size:11px">Edit Code</a>
+                    <form method="POST" action="/admin/developer/components/${t}/delete" style="margin:0" onsubmit="return confirm('Delete template \'${t}\'? This removes the files from disk.')">
+                        <input type="hidden" name="_csrf" value="${generateCsrfToken(session.id)}">
+                        <button type="submit" class="btn btn-secondary" style="padding:4px 12px; font-size:11px; color:#ef4444">Delete</button>
+                    </form>
                 </div>
             </div>
             `).join("")}
@@ -111,4 +115,10 @@ export const handleCreateTemplate = requireAuth(csrfProtect(async (req, params, 
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, "template.njk"), "", "utf-8");
   return Response.redirect(`/admin/developer/components/edit/${name}`, 302);
+}));
+
+export const handleDeleteTemplate = requireAuth(csrfProtect(async (req, params, _session) => {
+  const name = params.name.toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+  await rm(join(THEME_PATH, name), { recursive: true, force: true });
+  return Response.redirect("/admin/developer/components", 302);
 }));

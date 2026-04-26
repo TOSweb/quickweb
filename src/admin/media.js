@@ -78,15 +78,13 @@ export const mediaLibrary = requireAuth(async (req, params, session) => {
 
     <div class="card" style="margin-bottom:24px">
       <div style="font-weight:700;font-size:14px;margin-bottom:15px">Upload Files</div>
-      <form method="POST" action="/admin/media/upload" enctype="multipart/form-data" id="upload-form">
-        <input type="hidden" name="_csrf" value="${csrfToken}">
-        <div id="drop-zone" style="border:2px dashed #e2e8f0;border-radius:16px;padding:40px;text-align:center;cursor:pointer;transition:0.2s" onclick="document.getElementById('file-input').click()">
-          <div style="font-size:32px;margin-bottom:10px">📁</div>
-          <div style="font-weight:600;margin-bottom:4px">Drop files here or click to browse</div>
-          <div style="font-size:13px;color:#94a3b8">JPEG, PNG, WebP, GIF, SVG, PDF · Max ${config.uploads.maxSizeMb}MB</div>
-          <input type="file" id="file-input" name="file" multiple accept="${(config.uploads.allowedMimeTypes || []).join(",")}" style="display:none" onchange="this.form.submit()">
-        </div>
-      </form>
+      <div id="drop-zone" style="border:2px dashed #e2e8f0;border-radius:16px;padding:48px 40px;text-align:center;cursor:pointer;transition:background .15s,border-color .15s">
+        <div style="font-size:36px;margin-bottom:12px;pointer-events:none">☁️</div>
+        <div style="font-weight:600;font-size:15px;margin-bottom:4px;pointer-events:none">Click to browse or drag &amp; drop files here</div>
+        <div style="font-size:13px;color:#94a3b8;pointer-events:none">JPEG, PNG, WebP, GIF, SVG, PDF · Max ${config.uploads.maxSizeMb}MB each</div>
+        <input type="file" id="file-input" multiple accept="${(config.uploads.allowedMimeTypes || []).join(",")}" style="display:none">
+      </div>
+      <div id="file-queue" style="margin-top:12px;display:none"></div>
     </div>
 
     ${items.length ? `
@@ -96,17 +94,108 @@ export const mediaLibrary = requireAuth(async (req, params, session) => {
     ` : `<div class="card" style="text-align:center;color:#94a3b8;padding:60px">No media uploaded yet</div>`}
 
     <script>
+      const CSRF_TOKEN = '${csrfToken}';
+      let uploadTotal = 0, uploadDone = 0;
+
       const dz = document.getElementById('drop-zone');
-      dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = '#154d37'; dz.style.background = '#e9f5ef'; });
-      dz.addEventListener('dragleave', () => { dz.style.borderColor = '#e2e8f0'; dz.style.background = ''; });
+      const fi = document.getElementById('file-input');
+      const fq = document.getElementById('file-queue');
+
+      dz.onclick = () => fi.click();
+      fi.addEventListener('change', () => { queueFiles(fi.files); fi.value = ''; });
+
+      dz.addEventListener('dragover', e => {
+        e.preventDefault();
+        dz.style.borderColor = '#154d37';
+        dz.style.background = '#f0fdf4';
+      });
+      dz.addEventListener('dragleave', e => {
+        if (!dz.contains(e.relatedTarget)) {
+          dz.style.borderColor = '#e2e8f0';
+          dz.style.background = '';
+        }
+      });
       dz.addEventListener('drop', e => {
         e.preventDefault();
-        dz.style.borderColor = '#e2e8f0'; dz.style.background = '';
-        const dt = new DataTransfer();
-        [...e.dataTransfer.files].forEach(f => dt.items.add(f));
-        document.getElementById('file-input').files = dt.files;
-        document.getElementById('upload-form').submit();
+        dz.style.borderColor = '#e2e8f0';
+        dz.style.background = '';
+        queueFiles(e.dataTransfer.files);
       });
+
+      function queueFiles(files) {
+        for (const file of files) startUpload(file);
+      }
+
+      function startUpload(file) {
+        uploadTotal++;
+        fq.style.display = 'block';
+
+        const rowId = 'row-' + Math.random().toString(36).slice(2);
+        const icon = file.type.startsWith('image/') ? '🖼' : '📄';
+        const row = document.createElement('div');
+        row.id = rowId;
+        row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;background:#f8fafc;border-radius:10px;margin-bottom:8px;border:1px solid #e2e8f0';
+        row.innerHTML =
+          '<div style="font-size:22px;flex-shrink:0">' + icon + '</div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(file.name) + '</div>' +
+            '<div style="font-size:11px;color:#94a3b8;margin-bottom:5px">' + _fmt(file.size) + '</div>' +
+            '<div style="height:4px;background:#e2e8f0;border-radius:4px;overflow:hidden">' +
+              '<div class="prog" style="height:100%;width:0;background:#154d37;transition:width .15s"></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="status" style="font-size:12px;font-weight:600;color:#94a3b8;white-space:nowrap;min-width:70px;text-align:right">Uploading…</div>';
+        fq.appendChild(row);
+
+        const fill = row.querySelector('.prog');
+        const status = row.querySelector('.status');
+
+        const fd = new FormData();
+        fd.append('_csrf', CSRF_TOKEN);
+        fd.append('file', file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = e => {
+          if (e.lengthComputable) fill.style.width = (e.loaded / e.total * 100) + '%';
+        };
+        xhr.onload = () => {
+          fill.style.width = '100%';
+          if (xhr.status < 300) {
+            fill.style.background = '#16a34a';
+            status.style.color = '#16a34a';
+            status.textContent = '✓ Done';
+          } else {
+            fill.style.background = '#ef4444';
+            status.style.color = '#ef4444';
+            status.textContent = '✗ Failed';
+          }
+          onUploadComplete();
+        };
+        xhr.onerror = () => {
+          fill.style.background = '#ef4444';
+          status.style.color = '#ef4444';
+          status.textContent = '✗ Error';
+          onUploadComplete();
+        };
+        xhr.open('POST', '/admin/media/upload');
+        xhr.send(fd);
+      }
+
+      function onUploadComplete() {
+        uploadDone++;
+        if (uploadDone === uploadTotal) setTimeout(() => location.reload(), 700);
+      }
+
+      function _fmt(b) {
+        if (b < 1024) return b + ' B';
+        if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+        return (b / 1048576).toFixed(1) + ' MB';
+      }
+
+      function _esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      }
+
       function copyUrl(url) {
         navigator.clipboard.writeText(url).then(() => {
           const btn = event.target;
@@ -144,7 +233,12 @@ export const handleUpload = requireAuth(async (req, params, session) => {
     try {
       const { safeName, buffer, mimeType, originalName, size } = await validateUpload(file);
       const filePath = join(uploadDir, safeName);
-      await Bun.write(filePath, buffer);
+      if (typeof Bun !== "undefined") {
+        await Bun.write(filePath, buffer);
+      } else {
+        const { writeFile } = await import("fs/promises");
+        await writeFile(filePath, Buffer.from(buffer));
+      }
 
       await db.run(`
         INSERT INTO media (filename, original_name, path, url, mime_type, size, uploaded_by)

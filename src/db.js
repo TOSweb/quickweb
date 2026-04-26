@@ -17,7 +17,7 @@ export async function initDB() {
     adapter = createMySQLAdapter(config.db);
   } else {
     const { createSQLiteAdapter } = await import("./db/sqlite.js");
-    adapter = createSQLiteAdapter(config.db);
+    adapter = await createSQLiteAdapter(config.db);
   }
 
   await createTables();
@@ -31,8 +31,8 @@ export async function initDB() {
 async function createTables() {
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    email TEXT UNIQUE,
+    username VARCHAR(150) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE,
     password_hash TEXT NOT NULL,
     is_active INTEGER DEFAULT 1,
     is_superuser INTEGER DEFAULT 0,
@@ -42,7 +42,7 @@ async function createTables() {
 
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL,
+    name VARCHAR(255) UNIQUE NOT NULL,
     description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`));
@@ -55,9 +55,9 @@ async function createTables() {
 
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS permissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    codename TEXT NOT NULL,
-    name TEXT NOT NULL,
-    object_type TEXT NOT NULL,
+    codename VARCHAR(100) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    object_type VARCHAR(100) NOT NULL,
     object_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(codename, object_type, object_id)
@@ -86,7 +86,7 @@ async function createTables() {
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS pages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
-    slug TEXT UNIQUE NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
     canonical_url TEXT,
     seo_title TEXT,
     meta_description TEXT,
@@ -94,6 +94,7 @@ async function createTables() {
     og_description TEXT,
     og_image TEXT,
     schema_type TEXT DEFAULT 'WebPage',
+    custom_head TEXT,
     status TEXT DEFAULT 'draft',
     template TEXT DEFAULT 'page',
     publish_at DATETIME,
@@ -102,6 +103,8 @@ async function createTables() {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`));
+  // migration for existing installs
+  try { await adapter.exec("ALTER TABLE pages ADD COLUMN custom_head TEXT"); } catch { /* column already exists */ }
 
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS components (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -127,7 +130,7 @@ async function createTables() {
 
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS redirects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    from_url TEXT UNIQUE NOT NULL,
+    from_url VARCHAR(255) UNIQUE NOT NULL,
     to_url TEXT NOT NULL,
     status_code INTEGER DEFAULT 301,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -136,7 +139,7 @@ async function createTables() {
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS blog_posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
-    slug TEXT UNIQUE NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
     canonical_url TEXT,
     content TEXT,
     excerpt TEXT,
@@ -158,7 +161,7 @@ async function createTables() {
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS blog_categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    slug TEXT UNIQUE NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
     description TEXT,
     meta_description TEXT
   )`));
@@ -166,7 +169,7 @@ async function createTables() {
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS blog_tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    slug TEXT UNIQUE NOT NULL
+    slug VARCHAR(255) UNIQUE NOT NULL
   )`));
 
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS blog_post_categories (
@@ -182,10 +185,12 @@ async function createTables() {
   )`));
 
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
+    setting_key VARCHAR(255) PRIMARY KEY,
     value TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`));
+  // migrate: renamed 'key' → 'setting_key' for MariaDB reserved-word compatibility
+  try { await adapter.exec("ALTER TABLE settings RENAME COLUMN key TO setting_key"); } catch { /* already migrated */ };
 
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS media (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -203,7 +208,7 @@ async function createTables() {
   )`));
 
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     data TEXT,
     expires_at DATETIME NOT NULL
@@ -211,10 +216,10 @@ async function createTables() {
 
   await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS content_types (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    slug TEXT UNIQUE NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
     label TEXT NOT NULL,
     singular TEXT NOT NULL,
-    table_name TEXT UNIQUE NOT NULL,
+    table_name VARCHAR(255) UNIQUE NOT NULL,
     title_field TEXT NOT NULL DEFAULT 'title',
     sort_field TEXT NOT NULL DEFAULT 'id',
     sort_dir TEXT NOT NULL DEFAULT 'DESC',
@@ -239,7 +244,7 @@ async function seedInitialData() {
   ];
   for (const [key, value] of defaults) {
     await adapter.run(
-      "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
+      "INSERT OR IGNORE INTO settings (setting_key, value) VALUES (?, ?)",
       [key, value]
     );
   }
@@ -326,9 +331,9 @@ async function seedPermissionsAndGroups() {
 }
 
 async function refreshSettingsCache() {
-  const rows = await adapter.all("SELECT key, value FROM settings");
+  const rows = await adapter.all("SELECT setting_key, value FROM settings");
   settingsCache.clear();
-  for (const row of rows) settingsCache.set(row.key, row.value);
+  for (const row of rows) settingsCache.set(row.setting_key, row.value);
 }
 
 export function getDB() {
@@ -346,7 +351,7 @@ export function getSetting(key) {
 export async function setSetting(key, value) {
   const v = value ?? "";
   await adapter.run(
-    "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+    "INSERT OR REPLACE INTO settings (setting_key, value) VALUES (?, ?)",
     [key, v]
   );
   settingsCache.set(key, v);

@@ -65,8 +65,6 @@ export const settingsPage = requireAuth(async (req, params, session) => {
         <div style="font-weight:700;font-size:14px;margin-bottom:20px">SEO Defaults</div>
         <label style="font-weight:600;font-size:13px">Google Analytics ID</label>
         <input type="text" name="google_analytics_id" value="${esc(getSetting("google_analytics_id") || "")}" placeholder="G-XXXXXXXXXX">
-        <label style="font-weight:600;font-size:13px">Custom Head HTML (CDNs, Scripts, Pixels)</label>
-        <textarea name="custom_head" rows="4" placeholder="<script src='https://cdn...'></script>" style="font-family:monospace;font-size:12px">${esc(getSetting("custom_head") || "")}</textarea>
         <div style="display:flex;gap:20px;margin-bottom:15px">
           <label style="display:flex;align-items:center;gap:8px;font-size:14px">
             <input type="checkbox" name="sitemap_include_pages" value="1" style="width:auto;margin:0" ${getSetting("sitemap_include_pages") !== "0" ? "checked" : ""}> Include pages in sitemap
@@ -157,7 +155,6 @@ export const saveSettings = requireAuth(csrfProtect(async (req, params, session)
 export const saveSeoSettings = requireAuth(csrfProtect(async (req, params, session) => {
   const form = req._form;
   await setSetting("google_analytics_id",   form.get("google_analytics_id"));
-  await setSetting("custom_head",           form.get("custom_head") || "");
   await setSetting("sitemap_include_pages", form.get("sitemap_include_pages") === "1" ? "1" : "0");
   await setSetting("sitemap_include_posts", form.get("sitemap_include_posts") === "1" ? "1" : "0");
 
