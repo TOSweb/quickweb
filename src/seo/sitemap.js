@@ -1,5 +1,6 @@
 // src/seo/sitemap.js — sitemap.xml + robots.txt
 import { getDB, getSetting } from "../db.js";
+import { getContentTypes } from "../core/plugins.js";
 import config from "../config.js";
 
 let cachedSitemap = null;
@@ -59,6 +60,20 @@ async function generateSitemapXml() {
     for (const p of posts) {
       urls.push({ loc: `${siteUrl}/blog/${p.slug}`, lastmod: isoDate(p.updated_at), priority: "0.6", changefreq: "never" });
     }
+  }
+
+  // Content type list + detail URLs
+  for (const ct of getContentTypes()) {
+    if (!ct.hasPublicUrls) continue;
+    urls.push({ loc: `${siteUrl}/${ct.slug}`, priority: "0.8", changefreq: "weekly" });
+    try {
+      const items = await db.all(
+        `SELECT slug, updated_at FROM ${ct.table} WHERE status='published' AND slug IS NOT NULL AND slug != ''`
+      );
+      for (const item of items) {
+        urls.push({ loc: `${siteUrl}/${ct.slug}/${item.slug}`, lastmod: isoDate(item.updated_at), priority: "0.6", changefreq: "monthly" });
+      }
+    } catch {}
   }
 
   const urlEntries = urls.map(u => `  <url>

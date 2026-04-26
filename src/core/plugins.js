@@ -4,12 +4,53 @@ import { getDB } from "../db.js";
 import { join } from "path";
 import { readdirSync, existsSync } from "fs";
 
-const actionHooks = new Map();   // hook -> [fn, ...]
-const filterHooks = new Map();   // hook -> [fn, ...]
+const actionHooks = new Map();
+const filterHooks = new Map();
 const loadedPlugins = [];
-const contentTypes = [];         // registered via addContentType()
+const contentTypes = [];
 
+let _ctVersion = 0;
+export function getContentTypeVersion() { return _ctVersion; }
 export function getContentTypes() { return [...contentTypes]; }
+
+export async function loadCoreContentTypes() {
+  let db;
+  try {
+    const { getDB } = await import("../db.js");
+    db = getDB();
+  } catch { return; }
+
+  let rows = [];
+  try { rows = await db.all("SELECT * FROM content_types ORDER BY label ASC"); } catch { return; }
+
+  for (const row of rows) {
+    let fields = [];
+    try { fields = JSON.parse(row.fields_json || "[]"); } catch {}
+    contentTypes.push({
+      slug: row.slug,
+      label: row.label,
+      singular: row.singular,
+      table: row.table_name,
+      titleField: row.title_field || "title",
+      sortField: row.sort_field || "id",
+      sortDir: row.sort_dir || "DESC",
+      listTemplate: row.list_template,
+      detailTemplate: row.detail_template,
+      hasPublicUrls: !!row.has_public_urls,
+      fields,
+      _fromDB: true,
+      _id: row.id,
+    });
+  }
+}
+
+export async function reloadCoreContentTypes() {
+  for (let i = contentTypes.length - 1; i >= 0; i--) {
+    if (contentTypes[i]._fromDB) contentTypes.splice(i, 1);
+  }
+  await loadCoreContentTypes();
+  _ctVersion++;
+}
 
 export async function loadPlugins() {
   const pluginsDir = join(process.cwd(), "plugins");

@@ -101,6 +101,15 @@ export const settingsPage = requireAuth(async (req, params, session) => {
       </div>
     </form>
 
+    ${session.isSuperuser ? `
+    <div class="card" style="margin-top:20px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px">Environment &amp; Secrets</div>
+        <div style="font-size:13px;color:#64748b">Manage the <code style="background:#f1f5f9;padding:1px 6px;border-radius:4px">.env</code> file — database credentials, security keys, site URL.</div>
+      </div>
+      <a href="/admin/settings/env" class="btn btn-secondary" style="white-space:nowrap;flex-shrink:0">Manage →</a>
+    </div>` : ""}
+
     <script>
       document.querySelectorAll('input[name="homepage_type"]').forEach(r =>
         r.addEventListener("change", e =>

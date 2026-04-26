@@ -2,7 +2,7 @@
 import config from "./config.js";
 import { initDB } from "./db.js";
 import { initTheme } from "./core/theme.js";
-import { loadPlugins } from "./core/plugins.js";
+import { loadPlugins, loadCoreContentTypes } from "./core/plugins.js";
 import { registerBuiltins } from "./core/builtins.js";
 import { router } from "./router.js";
 import { securityHeaders } from "./core/headers.js";
@@ -14,6 +14,7 @@ async function start() {
   initTheme();
   registerBuiltins();
   await loadPlugins();
+  await loadCoreContentTypes();
 
   const isBun = typeof Bun !== "undefined";
   const port = config.port || 8080;

@@ -208,6 +208,22 @@ async function createTables() {
     data TEXT,
     expires_at DATETIME NOT NULL
   )`));
+
+  await adapter.exec(ddl(`CREATE TABLE IF NOT EXISTS content_types (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT UNIQUE NOT NULL,
+    label TEXT NOT NULL,
+    singular TEXT NOT NULL,
+    table_name TEXT UNIQUE NOT NULL,
+    title_field TEXT NOT NULL DEFAULT 'title',
+    sort_field TEXT NOT NULL DEFAULT 'id',
+    sort_dir TEXT NOT NULL DEFAULT 'DESC',
+    list_template TEXT,
+    detail_template TEXT,
+    has_public_urls INTEGER NOT NULL DEFAULT 1,
+    fields_json TEXT NOT NULL DEFAULT '[]',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`));
 }
 
 async function seedInitialData() {

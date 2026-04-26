@@ -191,13 +191,11 @@ export function adminHTML(title, content, session, { debugData = null } = {}) {
 
             ${(() => {
               const types = getContentTypes();
-              if (!types.length) return "";
-              return `<div class="nav-label">Content</div>` +
-                types.map(t => {
-                  const active = title === t.label || title === `New ${t.singular || t.label.replace(/s$/, "")}` || title === `Edit ${t.singular || t.label.replace(/s$/, "")}`;
-                  const iconSvg = t.navIcon || '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>';
-                  return `<a href="/admin/${t.slug}" class="${active ? 'active' : ''}">${icon(iconSvg)} ${t.label}</a>`;
-                }).join("");
+              const ctMgmtActive = title === "Content Types" || title === "New Content Type" || title.startsWith("Edit:");
+              const ctItemActive = (t) => title === t.label || title === `New ${t.singular || t.label.replace(/s$/, "")}` || title === `Edit ${t.singular || t.label.replace(/s$/, "")}`;
+              return `<div class="nav-label">Content</div>
+                <a href="/admin/content-types" class="${ctMgmtActive ? 'active' : ''}">${icon('<path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2z"/><path d="M7 7h.01"/>')} Content Types</a>
+                ${types.map(t => `<a href="/admin/${t.slug}" class="${ctItemActive(t) ? 'active' : ''}">${icon(t.navIcon || '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>')} ${t.label}</a>`).join("")}`;
             })()}
 
             <div class="nav-label">System</div>
@@ -206,6 +204,8 @@ export function adminHTML(title, content, session, { debugData = null } = {}) {
             <a href="/admin/users" class="${['Users','New User','Edit User'].includes(title) ? 'active' : ''}">${icon('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>')} Users</a>
             <a href="/admin/groups" class="${['Groups','New Group','Edit Group'].includes(title) ? 'active' : ''}">${icon('<path d="M17 21v-2a4 4 0 0 0-3-3.87"/><path d="M9 21v-2a4 4 0 0 1 3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><circle cx="9" cy="7" r="4"/>')} Groups</a>
             <a href="/admin/settings" class="${title === 'Settings' ? 'active' : ''}">${icon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>')} Settings</a>
+            ${session.isSuperuser ? `<a href="/admin/settings/env" class="${title === 'Environment & Secrets' ? 'active' : ''}" style="padding-left:32px;font-size:13px">${icon('<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>')} Env &amp; Secrets</a>` : ""}
+            <a href="/admin/hosting" class="${title === 'Deploy Your Site' ? 'active' : ''}">${icon('<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>')} Hosting &amp; Deploy</a>
             <a href="/admin/plugins" class="${title === 'Plugins' ? 'active' : ''}">${icon('<path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/>')} Plugins</a>
             <a href="/admin/developer/components" class="${title === 'Component Developer' ? 'active' : ''}">${icon('<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>')} Developer</a>
             <a href="/admin/logout" style="color:#ef4444; margin-top:20px">${icon('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>')} Logout</a>

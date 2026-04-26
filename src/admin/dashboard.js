@@ -123,6 +123,15 @@ export const dashboardPage = requireAuth(async (req, params, session) => {
         </div>
     </div>
 
+    <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,#154d37 0%,#2d6a4f 100%);color:white;display:flex;justify-content:space-between;align-items:center;padding:28px 32px">
+      <div>
+        <div style="font-size:22px;margin-bottom:6px">🚀</div>
+        <div style="font-weight:700;font-size:18px;margin-bottom:6px">Ready to go live?</div>
+        <div style="font-size:14px;opacity:0.85">Follow our step-by-step hosting guide — no technical knowledge needed. Pick your platform and we'll walk you through everything.</div>
+      </div>
+      <a href="/admin/hosting" style="background:white;color:#154d37;font-weight:700;font-size:14px;padding:12px 24px;border-radius:14px;text-decoration:none;white-space:nowrap;flex-shrink:0;margin-left:32px">Deploy Your Site →</a>
+    </div>
+
     <div class="card">
         <h3 style="font-size:16px; margin-bottom:20px">Recent Pages</h3>
         ${recentPages.map(p => `

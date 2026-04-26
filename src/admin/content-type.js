@@ -1,8 +1,26 @@
-// src/admin/content-type.js — generic CRUD admin pages for plugin-registered content types
+// src/admin/content-type.js — generic CRUD admin pages for content types
 import { getDB } from "../db.js";
 import { adminHTML } from "./base.js";
 import { requireAuth } from "../core/auth.js";
 import { csrfProtect, generateCsrfToken } from "../core/csrf.js";
+
+function slugify(str) {
+  return String(str).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+async function uniqueSlug(db, table, base, excludeId) {
+  let candidate = base || "item";
+  let i = 2;
+  while (true) {
+    const query = excludeId
+      ? `SELECT id FROM ${table} WHERE slug = ? AND id != ?`
+      : `SELECT id FROM ${table} WHERE slug = ?`;
+    const params = excludeId ? [candidate, excludeId] : [candidate];
+    const existing = await db.get(query, params);
+    if (!existing) return candidate;
+    candidate = `${base}-${i++}`;
+  }
+}
 
 // Build handler set for one registered content type definition.
 // Called once per type, result cached in the router.
@@ -16,9 +34,16 @@ export function makeContentTypeHandlers(typeDef) {
     fields,
     sortField = "id",
     sortDir = "DESC",
+    _fromDB = false,
   } = typeDef;
 
   const singularLabel = singular || label.replace(/s$/, "");
+
+  // Extra system fields shown only for DB-managed types
+  const systemFields = _fromDB ? [
+    { name: "_slug",   label: "URL Slug",   type: "text",   _system: true,  placeholder: "auto-generated from title" },
+    { name: "_status", label: "Status",     type: "select", _system: true,  options: ["published", "draft"] },
+  ] : [];
 
   // List all rows
   const list = requireAuth(async (req, params, session) => {
@@ -98,6 +123,7 @@ export function makeContentTypeHandlers(typeDef) {
         <form method="POST" action="/admin/${slug}/new">
           <input type="hidden" name="_csrf" value="${csrfToken}">
           ${renderFields(fields, {})}
+          ${_fromDB ? renderSystemFields(systemFields, {}) : ""}
           <button type="submit" class="btn btn-primary" style="margin-top:8px">Save</button>
         </form>
       </div>
@@ -113,6 +139,23 @@ export function makeContentTypeHandlers(typeDef) {
     const db = getDB();
     const cols = fields.map(f => f.name);
     const vals = cols.map(name => formVal(form, fields.find(f => f.name === name)));
+
+    if (_fromDB) {
+      // Auto-generate slug from title field
+      const rawSlug = (form.get("_slug") || "").trim();
+      const titleVal = String(form.get(titleField) || "");
+      const base = rawSlug || slugify(titleVal) || "item";
+      const generatedSlug = await uniqueSlug(db, table, base, null);
+      cols.push("slug");
+      vals.push(generatedSlug);
+      // Status
+      cols.push("status");
+      vals.push(form.get("_status") || "published");
+      // updated_at
+      cols.push("updated_at");
+      vals.push(new Date().toISOString().replace("T", " ").split(".")[0]);
+    }
+
     const placeholders = cols.map(() => "?").join(", ");
     try {
       await db.run(
@@ -148,6 +191,7 @@ export function makeContentTypeHandlers(typeDef) {
         <form method="POST" action="/admin/${slug}/${item.id}/edit">
           <input type="hidden" name="_csrf" value="${csrfToken}">
           ${renderFields(fields, item)}
+          ${_fromDB ? renderSystemFields(systemFields, item) : ""}
           <button type="submit" class="btn btn-primary" style="margin-top:8px">Save Changes</button>
         </form>
       </div>
@@ -163,10 +207,27 @@ export function makeContentTypeHandlers(typeDef) {
     const db = getDB();
     const item = await db.get(`SELECT id FROM ${table} WHERE id = ?`, [params.id]);
     if (!item) return new Response("Not found", { status: 404 });
+
     const setClauses = fields.map(f => `${f.name} = ?`).join(", ");
     const vals = fields.map(f => formVal(form, f));
+
+    let finalSet = setClauses;
+    let finalVals = vals;
+
+    if (_fromDB) {
+      const rawSlug = (form.get("_slug") || "").trim();
+      if (rawSlug && rawSlug !== item.slug) {
+        const newSlug = await uniqueSlug(db, table, slugify(rawSlug), params.id);
+        finalSet += (finalSet ? ", " : "") + "slug = ?";
+        finalVals.push(newSlug);
+      }
+      finalSet += (finalSet ? ", " : "") + "status = ?, updated_at = ?";
+      finalVals.push(form.get("_status") || "published");
+      finalVals.push(new Date().toISOString().replace("T", " ").split(".")[0]);
+    }
+
     try {
-      await db.run(`UPDATE ${table} SET ${setClauses} WHERE id = ?`, [...vals, params.id]);
+      await db.run(`UPDATE ${table} SET ${finalSet} WHERE id = ?`, [...finalVals, params.id]);
     } catch (err) {
       return errorPage(`Save failed: ${err.message}`, label, session);
     }
@@ -184,6 +245,27 @@ export function makeContentTypeHandlers(typeDef) {
 }
 
 // ─── Field rendering ──────────────────────────────────────────────────────────
+
+function renderSystemFields(sysFields, values) {
+  return `<hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
+    <p style="font-size:12px;font-weight:600;color:#94a3b8;letter-spacing:.06em;margin-bottom:12px">SYSTEM FIELDS</p>
+    ${sysFields.map(f => {
+      const val = f.name === "_slug" ? (values.slug ?? "") : (values.status ?? "published");
+      if (f.type === "select") {
+        const opts = (f.options || []).map(o => `<option value="${esc(o)}" ${val === o ? "selected" : ""}>${esc(o)}</option>`).join("");
+        return `<div style="margin-bottom:16px">
+          <label style="display:block;font-weight:600;font-size:13px;margin-bottom:6px">${esc(f.label)}</label>
+          <select name="${esc(f.name)}" style="width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafb;font-family:inherit">${opts}</select>
+        </div>`;
+      }
+      return `<div style="margin-bottom:16px">
+        <label style="display:block;font-weight:600;font-size:13px;margin-bottom:6px">${esc(f.label)}</label>
+        <input type="text" name="${esc(f.name)}" value="${esc(val)}" placeholder="${esc(f.placeholder || "")}"
+          style="width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafb;font-family:monospace;font-size:14px">
+        ${f.name === "_slug" ? `<div style="font-size:12px;color:#94a3b8;margin-top:4px">Leave empty to auto-generate from the title</div>` : ""}
+      </div>`;
+    }).join("")}`;
+}
 
 function renderFields(fields, values) {
   return fields.map(f => {

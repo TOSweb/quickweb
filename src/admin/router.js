@@ -23,16 +23,26 @@ import {
 import { redirectsList, handleNewRedirect, handleDeleteRedirect } from "./redirects.js";
 import { mediaLibrary, handleUpload, handleDeleteMedia } from "./media.js";
 import { pluginsList, handlePluginUpload, handleDeletePlugin } from "./plugins.js";
+import { envPage, handleSaveEnv } from "./env.js";
+import { hostingGuidePage } from "./hosting-guide.js";
 import { makeContentTypeHandlers } from "./content-type.js";
-import { getContentTypes } from "../core/plugins.js";
+import { getContentTypes, getContentTypeVersion } from "../core/plugins.js";
 import { requireAuth } from "../core/auth.js";
 import { adminHTML } from "./base.js";
+import {
+  contentTypesList, newContentTypePage, handleNewContentType,
+  editContentTypePage, handleEditContentType, handleDeleteContentType,
+} from "./content-types.js";
 
-// Lazily built on first request after loadPlugins() has run
+// Rebuilt whenever getContentTypeVersion() changes (after create/edit/delete)
 let _ctHandlers = null;
+let _ctHandlersVersion = -1;
+
 function getCtHandlers() {
-  if (_ctHandlers) return _ctHandlers;
+  const v = getContentTypeVersion();
+  if (_ctHandlers && _ctHandlersVersion === v) return _ctHandlers;
   _ctHandlers = new Map();
+  _ctHandlersVersion = v;
   for (const typeDef of getContentTypes()) {
     _ctHandlers.set(typeDef.slug, makeContentTypeHandlers(typeDef));
   }
@@ -163,6 +173,11 @@ export async function adminRouter(req, path) {
   }
   if (path === "/admin/settings/seo" && method === "POST") return saveSeoSettings(req, {});
   if (path === "/admin/settings/hosting" && method === "POST") return saveHostingSettings(req, {});
+  if (path === "/admin/settings/env") {
+    if (method === "GET") return envPage(req, {});
+    if (method === "POST") return handleSaveEnv(req, {});
+  }
+  if (path === "/admin/hosting") return hostingGuidePage(req, {});
   if (path === "/admin" || path === "/admin/") return dashboardPage(req, {});
 
   // Media
@@ -177,7 +192,21 @@ export async function adminRouter(req, path) {
   const deletePluginMatch = path.match(/^\/admin\/plugins\/([^/]+)\/delete$/);
   if (deletePluginMatch && method === "POST") return handleDeletePlugin(req, { folder: deletePluginMatch[1] });
 
-  // Dynamic content types (registered by plugins via addContentType)
+  // Core content types management UI
+  if (path === "/admin/content-types") return contentTypesList(req, {});
+  if (path === "/admin/content-types/new") {
+    if (method === "GET") return newContentTypePage(req, {});
+    if (method === "POST") return handleNewContentType(req, {});
+  }
+  const editCtMatch = path.match(/^\/admin\/content-types\/(\d+)\/edit$/);
+  if (editCtMatch) {
+    if (method === "GET") return editContentTypePage(req, { id: editCtMatch[1] });
+    if (method === "POST") return handleEditContentType(req, { id: editCtMatch[1] });
+  }
+  const deleteCtMatch = path.match(/^\/admin\/content-types\/(\d+)\/delete$/);
+  if (deleteCtMatch && method === "POST") return handleDeleteContentType(req, { id: deleteCtMatch[1] });
+
+  // Dynamic content types (registered by plugins or DB)
   const ctHandlers = getCtHandlers();
   for (const [slug, h] of ctHandlers) {
     if (path === `/admin/${slug}`) return h.list(req, {});
